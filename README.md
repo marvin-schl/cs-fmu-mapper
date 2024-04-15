@@ -13,7 +13,7 @@ $ pip3 install -r requirements.txt
 ## Executing Example
 
 ``` bash
-$ python main.py -c exmaple/config.yaml
+$ python main.py -c example/config.yaml
 ```
 
 ## Configuration 
