@@ -1,0 +1,106 @@
+############################################################################################################################################################################################################################################
+# FMU Components can be defined by specifying the type as fmu. Available backend options are 'pyfmi' and 'fmpy' to specify which fmi library python should use to interact with the FMU.                                                   #
+# The path specifies the location of the FMU file or alternatively a directory where multiple FMUs are located. For the latter case you can choose at each startup of the program the FMU that shall be simulated.                         #
+# The numberOfStepsPerCycle specifies how many steps the FMU should take per cycle. This parameter is especially important when the FMU is used in a co-simulation with a PLC. For standalone simulations this parameter can be set to 1.  #  
+# The inputVar and outputVar specifies the variables that should be read from the FMU. The entry names are arbitrary and can be chosen freely with the exception that the name has to be unique as they are used for mapping. The node     #
+# nodeIDs of each inputVar/outputVar specify access path of the variable inside the FMU                                                                                                                                                    #
+############################################################################################################################################################################################################################################
+Filter:
+  type: fmu
+  backend: pyfmi 
+  path: example/fmu/
+  numberOfStepsPerCycle: 1
+  inputVar:
+    fmu_u:
+      init: 0
+      nodeID: u
+  outputVar:
+    fmu_y:
+      init: 0
+      nodeID: y
+
+######################################################################################################################################################################################
+# The Mapping could also be configured betweem a PLC and a FMU. The following code snippet shows an example of how to configure the mapping between a FMU and a PLC.                #
+# Note that further adjustements are necessary to make this work. The PLC has to run a Watchdog so that the synchronization between the FMU and the PLC is ensured.                 #
+# A Scenario File for external Signal injection could still be used.                                                                                                                #                   
+######################################################################################################################################################################################
+#CodeSys:
+#  type: plc
+#  host: localhost
+#  port: '4840'
+#  finishedNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.calculationFinished
+#  simulationFinishedNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.PLC_PRG.simulationFinished
+#  stepNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.doStep
+#  terminateNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.terminate
+#  timePerCycleNodeID: ''
+#  inputVar:
+#    plc_u:
+#      init: 0
+#      nodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.PLC_PRG.u
+#  outputVar:
+#    plc_y:
+#      init: 0
+#      nodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.PLC_PRG.y
+
+
+######################################################################################################################################################################################
+# A Scenario can define external signals when the FMU is simulated standalone or external signals when simulated in conjunction with a PLC. Thus it only contains outputs.           # 
+# The path specifies the Location of the Scenario file. Alternatively a directory can be set when choosing the scenario file at startup is preferred.                                #
+# The outputVar specifies the variables that should be read from the Scenario file. The entry names are arbitrary and can be chosen freely with the exception                        #     
+# that the names should be unique as they are used for mapping. The nodeID specifies the column name the data should be taken from. The csv file should contain at least a column    #
+# 't' for time data and at least one more data column.                                                                                                                               #
+######################################################################################################################################################################################
+Scenario:
+  type: scenario
+  path:  example/scenario/
+  outputVar:
+    scen_u:
+      init: 0
+      nodeID: u
+
+######################################################################################################################################################################################
+# A Logger can be used to log the values of the variables that are read from the FMU or the PLC. The path specifies the location where the results should be stored. Thus it only    # 
+# contains inputs. The inputVar specifies the variables that should be logged. The entry names are arbitrary and can be chosen freely with the exception that the names should be    #
+# unique as they are used for mapping. Plots can be configured as shown. The logged raw data will be saved as csv also. The configured nodeIDs specify the column names.             #
+######################################################################################################################################################################################
+Logger:
+  type: logger
+  path: example/results/
+  inputVar:
+    log_y:
+      init: 0
+      nodeID: y
+    log_u:
+      init: 0
+      nodeID: u
+  plots:
+    step_response:
+      title: Filter Step Response
+      subgrid: true
+      grid: true
+      vars:
+      - log_u
+      - log_y
+      legend:
+      - u
+      - y
+      xlabel: Time [s]
+      ylabel: Signal Value
+
+
+########################################################################################################################################################################################
+# The Mapping specifies how the variables from the FMU, PLC and Scenario are mapped to each other. The timeStepPerCycle specifies the time which is simulated per step. For standalone #
+# simulation without PLC this equals the FMU step size if numberOfStepsPerCycle is set to 1. For PLC co-simulation the timeStepPerCycle should be set to the PLC accordingly to the    #
+# desired real time scaling, e.g. to the PLC cycle time for a real time scaling factor of 1. The PreStepMappings specify the mappings that should be done before the FMU is simulated. #
+# The postStepMappings specify the mappings that should be done after the FMU is simulated. The Mappings can be configured from any defined inputVar to an arbitrary amount            #
+# of outputVars. Any inputVar and/or outputVar should only be used once in the mapping section.                                                                                        #
+########################################################################################################################################################################################
+Mapping:
+  timeStepPerCycle: 0.01
+  preStepMappings:
+    scen_u: 
+    - fmu_u
+    - log_u
+  postStepMappings:
+    fmu_y: 
+    - log_y

@@ -20,6 +20,7 @@ async def kill_tasks():
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task 
+print(os.getcwd())
 
 #setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s  | %(name)-40s \t | %(levelname)-10s | %(message)s')
