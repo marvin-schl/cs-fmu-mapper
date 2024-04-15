@@ -1,34 +1,18 @@
-from interfaces import IMappable
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
-
-class Logger(IMappable):
+from interfaces import SimulationComponent
+class Logger(SimulationComponent):
     def __init__(self, config, name):        
-        self._log = logging.getLogger(self.__class__.__name__)
-        self._log.info("Initializing Logger.")
-        self._config = config
-        self._name = name 
-        self._input_values ={k : self._config["inputVar"][k]["init"] for k in self._config["inputVar"].keys()}
+        super(Logger, self).__init__(config, name)
         self._t = []
         self._data = {}
         for key in self._config["inputVar"].keys():
             self._data[self._config["inputVar"][key]["nodeID"]] = []
-        
-    def set_input_values(self, new_val):
-        self._input_values = new_val
 
-    def set_input_value(self, name, new_val):
-        self._input_values[name] = new_val
-
-    def contains(self, name):
-        return (name in self._input_values.keys()) 
-
-    def get_node_by_name(self, name):
-        if name in self._config["inputVar"].keys():
-            return self._config["inputVar"][name]["nodeID"]
-        else:
-            return None
+    def get_output_values(self):
+        raise NotImplementedError()
 
     def do_step(self, t, dt):
         for key, val in self._input_values.items():
@@ -44,8 +28,8 @@ class Logger(IMappable):
             for plot in self._config["plots"].keys():
                 self.generate_plot(plot)
         df = pd.DataFrame(self._data)
-        self._log.info("Saving data to: " + self._config["path"]+"\\data.csv")
-        df.to_csv(self._config["path"]+"\\data.csv", sep=";", index=False)
+        self._log.info("Saving data to: " + self._config["path"]+"data.csv")
+        df.to_csv(self._config["path"]+"data.csv", sep=";", index=False)
         self._log.info("Logger finalized.")
         return True
     
@@ -68,8 +52,3 @@ class Logger(IMappable):
         fig.savefig(self._config["path"]+"\\"+name+".png")
         plt.close(fig)
 
-    def get_name(self):
-        return self._name
-    
-    def get_type(self):
-        return self._config["type"]

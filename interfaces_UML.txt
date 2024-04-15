@@ -1,0 +1,23 @@
+@startuml
+class SimulationComponent {
+    _init_input_values()
+    _init_output_values()
+    set_input_value()
+    get_output_value()
+    get_node_by_name()
+    get_name()
+    get_type()
+    finalize()
+    contains()
+    do_step()
+    is_finished()
+    notify_simulation_finished()
+        _log
+    _config
+    _name
+    _input_values
+    _output_values
+    __init__()
+}
+ABC <|-- SimulationComponent
+@enduml

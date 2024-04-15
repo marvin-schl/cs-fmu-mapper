@@ -1,0 +1,21 @@
+@startuml
+class Scenario {
+    set_input_values()
+    _get_name_by_node()
+    do_step()
+    finalize()
+    is_finished()
+        _scenario
+    _scenario
+    _finished
+    _final_time
+    _pbar
+    _pbar_update_counter
+    _pbar_update_counter
+    _pbar_update_counter
+    _output_values
+    _finished
+    __init__()
+}
+SimulationComponent <|-- Scenario
+@enduml

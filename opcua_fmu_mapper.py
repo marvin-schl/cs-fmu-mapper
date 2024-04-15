@@ -81,7 +81,7 @@ class OPCUAFMUMapper:
 
         #step all compoments which are not a plc and have a do_step method
         for component in self._components.values():
-            if "do_step" in component.__dir__() and component.get_type() != "plc":
+            if component.get_type() != "plc":
                 component.do_step(self._t, self._timestep_per_cycle)
 
         for source, destinations in self._post_step_maps.items():
@@ -92,11 +92,10 @@ class OPCUAFMUMapper:
                 dest_component.set_input_value(destination, value)
 
         #notify plc if scenarios are finished
-        if self._plc_client:
-            scenarios = list(filter(lambda x: x.get_type() == "scenario", self._components.values()))
-            scenario_states = list(map(lambda x: x.is_finished(), scenarios))
-            if all(scenario_states):
-                self._plc_client.notify_simulation_finished()
+        components_finished = list(map(lambda x: x.is_finished(),  self._components.values()))
+        if all(components_finished):
+            for component in self._components.values():
+                component.notify_simulation_finished()
         
         self._t = self._t + self._timestep_per_cycle
 

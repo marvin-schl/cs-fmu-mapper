@@ -1,0 +1,13 @@
+@startuml
+class ComponentFactory {
+    createComponents()
+    addPlcComponent()
+    addLoggerComponent()
+    addScenarioComponent()
+    addFmuComponent()
+        _plc_component
+    _plc_component
+    _plc_component
+    __init__()
+}
+@enduml

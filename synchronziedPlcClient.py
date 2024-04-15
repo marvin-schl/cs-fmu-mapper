@@ -9,7 +9,6 @@ import numpy as np
 import asyncua.common
 from asyncua.ua.uatypes import VariantType
 from opcuaClient import AbstractOPCUAClient
-
 class SynchronizedPlcClient(AbstractOPCUAClient):
 
     def __init__(self, config, name) -> None:
@@ -63,19 +62,19 @@ class SynchronizedPlcClient(AbstractOPCUAClient):
 
 
 
-    async def do_step(self):
+    async def do_step(self, t = None, dt = None):
         #reading outputs
         self._start_time = time.time_ns()
-        for output in self._output_val.keys():
+        for output in self._output_values.keys():
             output_node:asyncua.Node = self._nodes[output]
-            self._output_val[output] = await output_node.read_value()
+            self._output_values[output] = await output_node.read_value()
 
         self._mapper.do_step()
 
-        for input in self._input_val.keys():
+        for input in self._input_values.keys():
             input_node: asyncua.Node = self._nodes[input]
             type = await input_node.read_data_type_as_variant_type()
-            await input_node.write_value(self._input_val[input],  type)
+            await input_node.write_value(self._input_values[input],  type)
        
                 
         await self._finishedNode.write_value(True, VariantType.Boolean)

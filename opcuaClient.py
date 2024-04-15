@@ -2,9 +2,9 @@ import logging
 import asyncio
 from abc import ABC, abstractmethod
 import asyncua.common
+from interfaces import SimulationComponent
 
-
-class AbstractOPCUAClient(ABC):
+class AbstractOPCUAClient(SimulationComponent):
     
 
     def __init__(self, config, name, lock) -> None:
@@ -14,31 +14,13 @@ class AbstractOPCUAClient(ABC):
             config (dict): Configuration section of Client.
             lock (asyncio.Lock): A shared Lock object to ensure consistent read and write operations. 
         """
-        self._log = logging.getLogger(self.__class__.__name__)
-        self._config = config
+        super(AbstractOPCUAClient, self).__init__(config, name)
         self._host = config["host"]
         self._port = config["port"]
         self._connection: asyncua.Client = None
         self._nodes     = {}
-        self._input_val = {}
-        self._output_val = {}
         self._running = False
         self._lock = lock
-        self._name = name
-
-    def get_name(self):
-        """Returns the name of the client.
-
-        Returns:
-            str: Name of the client.
-        """
-        return self._name
-    
-    def get_type(self):
-        return self._config["type"]
-    
-    def contains(self, name):
-        return (name in self._input_val.keys()) or (name in self._output_val.keys())
     
     async def _connect(self):
         """Connects client to OPCUA Server if it isn't already connected.
@@ -69,7 +51,7 @@ class AbstractOPCUAClient(ABC):
             input_node = self._connection.get_node(self._config["inputVar"][in_var]["nodeID"])
             self._nodes[in_var] = input_node
             #fill dict with a inital input node-value-pair
-            self._input_val[in_var] = self._config["inputVar"][in_var]["init"]
+            self._input_values[in_var] = self._config["inputVar"][in_var]["init"]
 
         #create output node-value dict
         for out_var in self._config["outputVar"].keys():
@@ -77,14 +59,14 @@ class AbstractOPCUAClient(ABC):
             output_node = self._connection.get_node(self._config["outputVar"][out_var]["nodeID"])
             #fill dict with a inital output node-value-pair
             self._nodes[out_var] = output_node
-            self._output_val[out_var] = self._config["outputVar"][out_var]["init"]
+            self._output_values[out_var] = self._config["outputVar"][out_var]["init"]
 
     async def run(self) -> None:
         """Connects client, invokes node initialization and delegates normal client operation to client specific _run() method. Disconnects and finalizes on asyncio.CancelledError. 
         """
         await self._connect()
 
-        if not self._input_val or not self._output_val:
+        if not self._nodes:
             await self.init_nodes() 
 
         self._running = True
@@ -96,36 +78,7 @@ class AbstractOPCUAClient(ABC):
             await self._finalize()
         await self._disconnect()
         self._log.info("OPCUA Client has been cancelled.")
-
-    def set_input_values(self, new_val):
-        """Writes new values into the input node dictionary.
-
-        Args:
-            new_val (dict): {asyncua.Node:value} dictionary containing new node values.
-        """
-        for input_name in new_val.keys():
-            try:
-                self._input_val[input_name] = new_val[input_name] 
-            except KeyError:
-                self._log.warning("Suppressed KeyError while setting new input values. There were keys in the new values which could not be written. Check for possible misconfiguration of node Mapping.")           
-
-    def set_input_value(self, name, new_val):
-        self._input_val[name] = new_val
-
-    def contains(self, name):
-        return (name in self._input_val.keys()) or (name in self._output_val.keys())
-
-    def get_output_values(self):
-        """Get the output value dictionary.
-
-        Returns:
-            dict: {asyncua.Node:value}-dictionary which contains output nodes as keys and their corresponding values as values.
-        """
-        return self._output_val
     
-    def get_output_value(self, name):
-        return self._output_val[name]
-
     def terminate(self):
         """Initiate termination without catching an exception.
         """
@@ -146,21 +99,6 @@ class AbstractOPCUAClient(ABC):
         else:
             print(self._connection.uaclient.protocol.state)
             return False
-    
-    async def get_node_by_name(self, name):
-        """Query a asyncua.Node by it's human readable name defined in the configuration file.
-
-        Args:
-            name (str): Human readable name of a node defined in the configuration
-
-        Raises:
-            KeyError: KeyError is raised if the 'name' is not defined in the configuration.
-
-        Returns:
-            asyncua.Node: Returns the to asyncua.Node object corresponding to 'name' 
-        """
-        if name in self._nodes.keys():
-            return self._nodes[name]
     
     @abstractmethod
     async def _run(self):

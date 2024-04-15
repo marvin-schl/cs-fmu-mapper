@@ -49,6 +49,7 @@ if plcclient:
     mapper = OPCUAFMUMapper(config=config["Mapping"], plc_client=plcclient, mappables=component_list)
     plcclient.set_mapper(mapper)
 
+
     logger.info("Starting eventloop...")
     loop = asyncio.get_event_loop()
     #run asyncio task until a KeyboardInterrupt(Ctrl +C ) is catched
