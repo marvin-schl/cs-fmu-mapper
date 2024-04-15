@@ -2,7 +2,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
-from interfaces import SimulationComponent
+from simulation_component import SimulationComponent
 class Logger(SimulationComponent):
     def __init__(self, config, name):        
         super(Logger, self).__init__(config, name)

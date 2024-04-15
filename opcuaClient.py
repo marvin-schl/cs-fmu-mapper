@@ -2,7 +2,7 @@ import logging
 import asyncio
 from abc import ABC, abstractmethod
 import asyncua.common
-from interfaces import SimulationComponent
+from simulation_component import SimulationComponent
 
 class AbstractOPCUAClient(SimulationComponent):
     

@@ -4,7 +4,7 @@ from tqdm import tqdm
 import os
 from utils import chooseFile
 import logging
-from interfaces import SimulationComponent
+from simulation_component import SimulationComponent
 
 class Scenario(SimulationComponent):
     def __init__(self, config, name):

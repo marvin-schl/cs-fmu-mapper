@@ -8,7 +8,7 @@ import os
 from utils import chooseFile
 from fmpy.fmi2 import FMU2Slave
 from fmpy import extract, read_model_description
-from interfaces import SimulationComponent
+from simulation_component import SimulationComponent
 
 class FMUSimClient(SimulationComponent):
 
