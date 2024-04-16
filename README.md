@@ -4,7 +4,7 @@
 ## Installation
 
 ``` bash
-$ conda create -n cs-fmu-mapper python=3.9.7
+$ conda create -n cs-fmu-mapper python=3.10
 $ conda activate cs-fmu-mapper
 $ conda install -c conda-forge pyfmi 
 $ pip3 install -r requirements.txt
