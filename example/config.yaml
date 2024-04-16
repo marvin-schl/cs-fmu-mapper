@@ -90,9 +90,9 @@ Logger:
 
 ########################################################################################################################################################################################
 # The Mapping specifies how the variables from the FMU, PLC and Scenario are mapped to each other. The timeStepPerCycle specifies the time which is simulated per step. For standalone #
-# simulation without PLC this equals the FMU step size if numberOfStepsPerCycle is set to 1. For PLC co-simulation the timeStepPerCycle should be set to the PLC accordingly to the    #
-# desired real time scaling, e.g. to the PLC cycle time for a real time scaling factor of 1. The PreStepMappings specify the mappings that should be done before the FMU is simulated. #
-# The postStepMappings specify the mappings that should be done after the FMU is simulated. The Mappings can be configured from any defined inputVar to an arbitrary amount            #
+# simulation without PLC this equals the FMU step size if numberOfStepsPerCycle is set to 1. For PLC co-simulation the timeStepPerCycle should be set accordingly to the               #
+# desired real time scaling, e.g. to the PLC cycle time for a real time scaling factor of 1. The PreStepMappings specify the mappings that should be done before the call of doStep(). #
+# The postStepMappings specify the mappings that should be done after the doStep() call. The Mappings can be configured from any defined inputVar to an arbitrary amount               #
 # of outputVars. Any inputVar and/or outputVar should only be used once in the mapping section.                                                                                        #
 ########################################################################################################################################################################################
 Mapping:
