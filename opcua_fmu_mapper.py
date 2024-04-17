@@ -1,4 +1,4 @@
-from synchronziedPlcClient import SynchronizedPlcClient
+from synchronzied_plc_client import SynchronizedPlcClient
 from fmu_sim_client import FMUSimClient
 import logging
 from tqdm import tqdm

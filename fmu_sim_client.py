@@ -12,6 +12,8 @@ from simulation_component import SimulationComponent
 
 class FMUSimClient(SimulationComponent):
 
+    type = "fmu-abstract"
+
     def __init__(self, config, name):
         """Creates an instance of a FMUSimClient. This class wraps the FMU into a simulation object which can be simulated in single steps. This class
         also provides method to read the configured output values between simulation steps and write the configured input values.
@@ -55,7 +57,7 @@ class FMUSimClient(SimulationComponent):
         pass
 
     @abstractmethod
-    def _read_output_valuesues(self):
+    def _read_output_values(self):
         pass
 
     @abstractmethod
@@ -77,7 +79,7 @@ class FMUSimClient(SimulationComponent):
 
 
         self._log.debug("Reading Simulation Output.")
-        self._read_output_valuesues()
+        self._read_output_values()
 
 
     def get_total_time_per_cycle(self):
@@ -91,6 +93,8 @@ class FMUSimClient(SimulationComponent):
     
 
 class FMPySimClient(FMUSimClient):
+
+    type = "fmu-fmpy"
 
     def _load_model(self, path):
         self._log.info("Using FMPy as FMU Backend")
@@ -117,20 +121,20 @@ class FMPySimClient(FMUSimClient):
         self._model.exitInitializationMode()
 
     def _set_input_values(self):
-        input_vrs = list(map(lambda x: self._vrs[self.get_node_by_name(x)], self._input_values.keys()))
-        self._model.setReal(input_vrs, list(self._input_values.values()))
+        for key,val in self.get_input_values().items():
+            self._model.setReal([self._vrs[self.get_node_by_name(key)]], [val])
 
-
-    def _read_output_valuesues(self):
-        output_keys = self._output_values.keys()
-        output_vrs =  list(map(lambda x: self._vrs[self.get_node_by_name(x)], output_keys))
-        val = self._model.getReal(output_vrs)
-        self._output_values = dict(zip(self._output_values.keys(), val))
+    def _read_output_values(self):
+        for key in self.get_output_values().keys():
+            val = self._model.getReal([self._vrs[self.get_node_by_name(key)]])
+            self.set_output_value(key, val[0])
 
     def _call_fmu_step(self, t ,dt):
         self._model.doStep(currentCommunicationPoint=t, communicationStepSize=dt)
 
 class PyFMISimClient(FMUSimClient):
+
+    type = "fmu-pyfmi"
 
     def _load_model(self, path):
         self._log.info("Using PyFMI as FMU Backend")
@@ -150,13 +154,13 @@ class PyFMISimClient(FMUSimClient):
         self._model.initialize()
 
     def _set_input_values(self):
-        inputNodes = list(map(lambda x: self.get_node_by_name(x), self._input_values.keys()))
-        self._model.set(inputNodes, list(self._input_values.values()))
+        for key,val in self.get_input_values().items():
+            self._model.set(self.get_node_by_name(key), val)
 
-    def _read_output_valuesues(self):
-        nodes = list(map(lambda x: self.get_node_by_name(x), self._output_values.keys()))
-        val = map(lambda x: x[0], self._model.get(nodes))
-        self._output_values = dict(zip(self._output_values.keys(), val))
+    def _read_output_values(self):
+        for key in self.get_output_values().keys():
+            val = self._model.get(self.get_node_by_name(key))
+            self.set_output_value(key, val[0])
 
     def _call_fmu_step(self, t, dt):
         self._model.do_step(t, dt, True)

@@ -2,19 +2,18 @@ import logging
 import asyncio
 from abc import ABC, abstractmethod
 import asyncua.common
-from simulation_component import SimulationComponent
+#from simulation_component import SimulationComponent
 
-class AbstractOPCUAClient(SimulationComponent):
+class AbstractOPCUAClient(ABC):
     
 
-    def __init__(self, config, name, lock) -> None:
+    def __init__(self, config, name, lock=None) -> None:
         """This Class implements a basic abstract OPCUA Client. Childs have to implement abstract method _run() as the operations per mapping cycle depend on the specific Client type.
 
         Args:
             config (dict): Configuration section of Client.
             lock (asyncio.Lock): A shared Lock object to ensure consistent read and write operations. 
         """
-        super(AbstractOPCUAClient, self).__init__(config, name)
         self._host = config["host"]
         self._port = config["port"]
         self._connection: asyncua.Client = None

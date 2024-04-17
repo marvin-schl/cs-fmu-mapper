@@ -3,6 +3,7 @@ import logging
 
 class SimulationComponent(ABC):
 
+
     @classmethod
     def get_subclasses(cls):
         for subclass in cls.__subclasses__():
@@ -30,10 +31,42 @@ class SimulationComponent(ABC):
         self._output_values = {k : self._config["outputVar"][k]["init"] for k in self._config["outputVar"].keys()}
 
     def set_input_value(self, name, new_val):
+        if not self._input_values:
+            return NotImplementedError("Component does not have output values.")
         self._input_values[name] = new_val
+
+    def get_input_value(self, name):
+        if not self._input_values:
+            return NotImplementedError("Component does not have output values.")
+        return self._input_values[name]
     
+    def get_input_values(self):
+        if not self._input_values:
+            return NotImplementedError("Component does not have output values.")
+        return self._input_values
+
+    def set_input_values(self, new_val):#
+        self._input_values = new_val
+
     def get_output_value(self, name):
+        if not self._output_values:
+            return NotImplementedError("Component does not have output values.")
         return self._output_values[name]
+
+    def set_output_value(self, name, new_val):
+        if not self._output_values:
+            return NotImplementedError("Component does not have output values.")
+        self._output_values[name] = new_val
+
+    def get_output_values(self):
+        if not self._output_values:
+            return NotImplementedError("Component does not have output values.")
+        return self._output_values
+
+    def set_output_values(self, new_val):
+        if not self._output_values:
+            return NotImplementedError("Component does not have output values.")
+        self._output_values = new_val
     
     def get_node_by_name(self, name):
         if self._input_values and (name in self._config["inputVar"].keys()):
@@ -69,3 +102,12 @@ class SimulationComponent(ABC):
     
     def notify_simulation_finished(self):
         pass
+
+    def log_info(self, msg):
+        self._log.info(msg)
+
+    def log_debug(self, msg):
+        self._log.debug(msg)
+
+    def log_warning(self, msg):
+        self._log.warning(msg)

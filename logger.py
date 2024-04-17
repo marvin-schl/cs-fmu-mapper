@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import logging
 from simulation_component import SimulationComponent
 class Logger(SimulationComponent):
+
+    type = "logger"
+
     def __init__(self, config, name):        
         super(Logger, self).__init__(config, name)
         self._t = []
@@ -15,7 +18,7 @@ class Logger(SimulationComponent):
         raise NotImplementedError()
 
     def do_step(self, t, dt):
-        for key, val in self._input_values.items():
+        for key, val in self.get_input_values().items():
             nodeID = self.get_node_by_name(key)
             self._data[nodeID].append(val)
         self._t.append(t)
@@ -37,11 +40,16 @@ class Logger(SimulationComponent):
 
         if "plots" in self._config.keys():
             for plot in self._config["plots"].keys():
-                match self._config["plots"][plot]["type"]:
-                    case "time_series":
-                        self.generate_time_series_plot(plot)
-                    case "scatter":
-                        self.generate_scatter_plot(plot)
+                if "type" in self._config["plots"][plot].keys():
+                    match self._config["plots"][plot]["type"]:
+                        case "time_series":
+                            self.generate_time_series_plot(plot)
+                        case "scatter":
+                            self.generate_scatter_plot(plot)
+                        case _:
+                            raise NotImplementedError("Plot type " + self._config["plots"][plot]["type"]  + "not implemented.")
+                else: 
+                    self.generate_time_series_plot(plot)
 
         df = pd.DataFrame(self._data)
         self._log.info("Saving data to: " + self._config["path"]+"data.csv")

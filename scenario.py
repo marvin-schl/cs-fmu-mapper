@@ -7,6 +7,9 @@ import logging
 from simulation_component import SimulationComponent
 
 class Scenario(SimulationComponent):
+
+    type = "scenario"
+
     def __init__(self, config, name):
         super(Scenario, self).__init__(config, name)
         self._log.info("Using Scneario path: " + config["path"])
@@ -40,9 +43,10 @@ class Scenario(SimulationComponent):
             cur_val = self._scenario[self._scenario["t"] >= t].sort_values(by="t", ascending=True).iloc[0]
             output_values = cur_val.to_dict()
             del output_values["t"]
-            self._output_values = dict(map(lambda x: (x, output_values[self.get_node_by_name(x)]), self._output_values.keys()))
+            self.set_output_values(dict(map(lambda x: (x, output_values[self.get_node_by_name(x)]), self.get_output_values().keys())))
 
-        except:
+        except Exception as e:
+            print(e)
             self._finished = True
             self._pbar.close()
             self._log.info("Scenario finished at .")

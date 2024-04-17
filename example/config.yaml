@@ -6,8 +6,7 @@
 # nodeIDs of each inputVar/outputVar specify access path of the variable inside the FMU                                                                                                                                                    #
 ############################################################################################################################################################################################################################################
 Filter:
-  type: fmu
-  backend: pyfmi 
+  type: fmu-pyfmi           #or fmu-fmpy
   path: example/fmu/
   numberOfStepsPerCycle: 1
   inputVar:
