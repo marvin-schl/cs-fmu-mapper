@@ -99,7 +99,8 @@ class OPCUAFMUMapper:
         
         self._t = self._t + self._timestep_per_cycle
 
-
+    def fmu_log_callback_wrapper(self, module, level, message):
+        self._log.info(message)
 
     def finalize(self):
         """Finalizes the simulation and all components. """

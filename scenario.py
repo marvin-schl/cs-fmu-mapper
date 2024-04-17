@@ -9,7 +9,7 @@ from simulation_component import SimulationComponent
 class Scenario(SimulationComponent):
     def __init__(self, config, name):
         super(Scenario, self).__init__(config, name)
-        self._log.info("Using Scneario path file: " + config["path"])
+        self._log.info("Using Scneario path: " + config["path"])
         if os.path.exists(config["path"]):
             if os.path.isfile(config["path"]):
                 self._scenario = pd.read_csv(config["path"], delimiter=";")
@@ -43,9 +43,10 @@ class Scenario(SimulationComponent):
             self._output_values = dict(map(lambda x: (x, output_values[self.get_node_by_name(x)]), self._output_values.keys()))
 
         except:
-            self._log.info("Scenario finished at t = " + str(t) + "s")
             self._finished = True
             self._pbar.close()
+            self._log.info("Scenario finished at .")
+
     
     def finalize(self):
         return True

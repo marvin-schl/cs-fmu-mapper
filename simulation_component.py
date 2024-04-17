@@ -3,6 +3,12 @@ import logging
 
 class SimulationComponent(ABC):
 
+    @classmethod
+    def get_subclasses(cls):
+        for subclass in cls.__subclasses__():
+            yield from subclass.get_subclasses()
+            yield subclass
+
     def __init__(self, config, name):
         self._log = logging.getLogger(self.__class__.__name__)
         self._log.info("Initializing "+ str(self.__class__.__name__) + ".")

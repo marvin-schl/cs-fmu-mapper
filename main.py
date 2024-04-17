@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from opcua_fmu_mapper       import OPCUAFMUMapper
 from component_factory      import ComponentFactory
 import asyncio

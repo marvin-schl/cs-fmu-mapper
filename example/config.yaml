@@ -66,6 +66,8 @@ Scenario:
 Logger:
   type: logger
   path: example/results/
+  usetex: false                 #optional, true for use of Latex renderer
+  fontafamily: sans-serif       #optional, serif for latex style font
   inputVar:
     log_y:
       init: 0
@@ -75,17 +77,31 @@ Logger:
       nodeID: u
   plots:
     step_response:
+      type: time_series
       title: Filter Step Response
-      subgrid: true
-      grid: true
+      subgrid: true              #optional
+      grid: true  	             #optional
       vars:
       - log_u
       - log_y
-      legend:
+      legend:                     #optional
       - u
       - y
       xlabel: Time [s]
       ylabel: Signal Value
+    scatter_example:
+      type: scatter
+      title: Scatter Example
+      subgrid: true               #optional
+      grid: true                  #optional
+      vars:
+      - log_u
+      x_var: log_y
+      legend:                     #optional
+      - u over y
+      xlabel: Y with some \LaTeX
+      ylabel: U
+
 
 
 ########################################################################################################################################################################################

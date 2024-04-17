@@ -141,7 +141,12 @@ class PyFMISimClient(FMUSimClient):
 
         return model
  
+        
+    def fmu_log_callback_wrapper(self, module, level, message):
+        self._log.info(message)
+
     def _init_model(self):
+        self._model.set_additional_logger(self.fmu_log_callback_wrapper)
         self._model.initialize()
 
     def _set_input_values(self):
