@@ -1,15 +1,9 @@
-import logging
-import signal 
-import sys 
-import json
 import time
-import asyncio
 import numpy as np
 from asyncua.ua.uatypes import VariantType
-from opcua_client import AbstractOPCUAClient
-from simulation_component import SimulationComponent
+from components.opcua_client import AbstractOPCUAClient
+from components.simulation_component import SimulationComponent
 
-import asyncua.common
 
 class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
     

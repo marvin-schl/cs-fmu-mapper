@@ -1,7 +1,5 @@
-from synchronzied_plc_client import SynchronizedPlcClient
-from fmu_sim_client import FMUSimClient
+from components.synchronzied_plc_client import SynchronizedPlcClient
 import logging
-from tqdm import tqdm
 
 class OPCUAFMUMapper:
 

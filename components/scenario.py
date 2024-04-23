@@ -4,7 +4,7 @@ from tqdm import tqdm
 import os
 from utils import chooseFile
 import logging
-from simulation_component import SimulationComponent
+from components.simulation_component import SimulationComponent
 
 class Scenario(SimulationComponent):
 

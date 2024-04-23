@@ -2,7 +2,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
-from simulation_component import SimulationComponent
+from components.simulation_component import SimulationComponent
 class Logger(SimulationComponent):
 
     type = "logger"
@@ -52,8 +52,8 @@ class Logger(SimulationComponent):
                     self.generate_time_series_plot(plot)
 
         df = pd.DataFrame(self._data)
-        self._log.info("Saving data to: " + self._config["path"]+"data.csv")
-        df.to_csv(self._config["path"]+"data.csv", sep=";", index=False)
+        self._log.info("Saving data to: " + self._config["path"]+"\data.csv")
+        df.to_csv(self._config["path"]+"\data.csv", sep=";", index=False)
         self._log.info("Logger finalized.")
         return True
     

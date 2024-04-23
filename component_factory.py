@@ -1,10 +1,5 @@
-from fmu_sim_client import FMPySimClient, PyFMISimClient
-from synchronzied_plc_client import SynchronizedPlcClient
-from simulation_component import SimulationComponent
-from logger import Logger
-from scenario import Scenario
-
-
+#from components.simulation_component import SimulationComponent
+from components import *
 class ComponentFactory:
 
     def __init__(self) -> None:
@@ -16,6 +11,7 @@ class ComponentFactory:
         self._plc_component = None
 
         classes = list(SimulationComponent.get_subclasses())
+        print(classes)
         component_classes = {c.type: c for c in classes}
 
         componentConfig = config.copy()
@@ -25,11 +21,11 @@ class ComponentFactory:
             type = componentConfig[key]["type"]
             try:
                 cls = component_classes[type]
-                self._components.append(cls(componentConfig[key], key))
+                component_instance = cls(componentConfig[key], key)
+                self._components.append(component_instance)
                 if type == "plc":
                     self._plc_component = self._components[-1]
             except KeyError:
                 raise NotImplementedError("Defined Component " + key + " of type " + type + " is not implemented.")
         
         return self._plc_component, self._components
-        

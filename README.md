@@ -20,12 +20,11 @@
 
 Configuration is done in yaml format. The configuration file can also be formatted as json but yaml is recommend as it supports commenting. A detailed commented example configuration is given [here](example/config.yaml).
 
-The configuration basically defines simulation components of type `plc`, `fmu`, `logger` and/or `scenario`. Each component sections defines `ouputVar`s and/or `inputVar`s by specifying their component specific access string called `nodeID`, e.g the OPCUA NodeID for a `plc` variable or the csv column name of a `scenario` variable. Configuration of `scenario` and `logger` components are optional. Configuration of `plc` component is also optional but only makes sense if there is at least a `scenario` or another custom component configures which interacts with the `fmu`.
+The configuration basically defines simulation components of type `plc`, `fmu`, `logger` and/or `scenario`. Each components section defines `ouputVar`s and/or `inputVar`s by specifying their component specific access string called `nodeID`, e.g the OPCUA NodeID for a `plc` component or the csv column name of a `scenario` component. Configuration of `scenario` and `logger` components are optional. Configuration of `plc` component is also optional but only makes sense if there is at least a `scenario` or another custom component configured which interacts with the `fmu`.
 
-Besides the component configration there is a `Mapping` section where the Mapping from `outputVar`s to `inputVars` is configured. For detailed explanation see the example config. The simulation will be performend in steps if a mapping ist configured as `preStepMapping` the mapping will be done before simulation step exectuion. Consequently when a mapping is configured as `postStepMapping` the mapping will be done afterwards. 
+Besides the component configration there is a `Mapping` section where the Mapping from `outputVar`s to `inputVar`s is configured. For detailed explanation see the example config. The simulation will be performend in steps. If a mapping ist configured as `preStepMapping` the mapping will be done before simulation step execution. Consequently when a mapping is configured as `postStepMapping` the mapping will be done afterwards. 
 
-If there is a `plc` component configured the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured the step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that that the simulation is finished. In standalone mode the simulation will then finalize itself. In `plc` master mode the `plc` should react 
-accordingly and should initate the termination of the program. 
+If there is a `plc` component configured the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that that the simulation is finished. In standalone mode the simulation will then finalize itself. In `plc` master mode the `plc` should react accordingly and should initate the termination of the program. 
 
 ## Usage
 
@@ -37,7 +36,7 @@ The example can be executed via the following command:
 
 ## Implementing new Components
 
-To implement custom simulation component inherit from SimulationComponent. The inherited class should have a classvariable `type` which value determines the value of the `type` field in the configuration file. Also all abstract methods from SimulationComponent have to be implemented. The constructor should take two arguments the corresponding section of the configuration and a name. of  A minimal simulation component could look like:
+To implement custom simulation component inherit from SimulationComponent. The inherited class should define a classvariable `type` which value determines the value of the `type` field in the configuration file. Also all abstract methods from SimulationComponent have to be implemented. Place the custom class inside the subpackage `components`. The constructor should take two arguments the corresponding section of the configuration as dict and a name. of  A minimal simulation component could look like:
 
 ```python
 from simulation_component import SimulationComponent

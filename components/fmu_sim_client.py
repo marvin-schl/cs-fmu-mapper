@@ -8,11 +8,11 @@ import os
 from utils import chooseFile
 from fmpy.fmi2 import FMU2Slave
 from fmpy import extract, read_model_description
-from simulation_component import SimulationComponent
+from components.simulation_component import SimulationComponent
 
 class FMUSimClient(SimulationComponent):
 
-    type = "fmu-abstract"
+    type = None
 
     def __init__(self, config, name):
         """Creates an instance of a FMUSimClient. This class wraps the FMU into a simulation object which can be simulated in single steps. This class
