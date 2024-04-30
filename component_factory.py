@@ -1,5 +1,7 @@
-#from components.simulation_component import SimulationComponent
+# from components.simulation_component import SimulationComponent
 from components import *
+
+
 class ComponentFactory:
 
     def __init__(self) -> None:
@@ -26,6 +28,12 @@ class ComponentFactory:
                 if type == "plc":
                     self._plc_component = self._components[-1]
             except KeyError:
-                raise NotImplementedError("Defined Component " + key + " of type " + type + " is not implemented.")
-        
+                raise NotImplementedError(
+                    "Defined Component "
+                    + key
+                    + " of type "
+                    + type
+                    + " is not implemented."
+                )
+
         return self._plc_component, self._components

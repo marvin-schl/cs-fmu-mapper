@@ -1,13 +1,14 @@
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
 from components.simulation_component import SimulationComponent
+
+
 class Logger(SimulationComponent):
 
     type = "logger"
 
-    def __init__(self, config, name):        
+    def __init__(self, config, name):
         super(Logger, self).__init__(config, name)
         self._t = []
         self._data = {}
@@ -29,14 +30,18 @@ class Logger(SimulationComponent):
         self._data["time"] = self._t
 
         if "usetex" in self._config.keys():
-            plt.rcParams.update({
-                "text.usetex": self._config["usetex"],
-            })
-        
+            plt.rcParams.update(
+                {
+                    "text.usetex": self._config["usetex"],
+                }
+            )
+
         if "fontfamily" in self._config.keys():
-            plt.rcParams.update({
-                "font.family": self._config["fontfamily"],
-            })
+            plt.rcParams.update(
+                {
+                    "font.family": self._config["fontfamily"],
+                }
+            )
 
         if "plots" in self._config.keys():
             for plot in self._config["plots"].keys():
@@ -47,18 +52,24 @@ class Logger(SimulationComponent):
                         case "scatter":
                             self.generate_scatter_plot(plot)
                         case _:
-                            raise NotImplementedError("Plot type " + self._config["plots"][plot]["type"]  + "not implemented.")
-                else: 
+                            raise NotImplementedError(
+                                "Plot type "
+                                + self._config["plots"][plot]["type"]
+                                + "not implemented."
+                            )
+                else:
                     self.generate_time_series_plot(plot)
 
         df = pd.DataFrame(self._data)
-        self._log.info("Saving data to: " + self._config["path"]+"\data.csv")
-        df.to_csv(self._config["path"]+"\data.csv", sep=";", index=False)
+        self._log.info("Saving data to: " + self._config["path"] + "\data.csv")
+        df.to_csv(self._config["path"] + "\data.csv", sep=";", index=False)
         self._log.info("Logger finalized.")
         return True
-    
+
     def generate_time_series_plot(self, name):
-        self._log.info("Generating time series plot " + name + " to: " + self._config["path"])
+        self._log.info(
+            "Generating time series plot " + name + " to: " + self._config["path"]
+        )
         plot_config = self._config["plots"][name]
 
         fig, ax = plt.subplots()
@@ -67,19 +78,26 @@ class Logger(SimulationComponent):
             ax.plot(self._t, self._data[nodeID])
         if "legend" in plot_config.keys():
             ax.legend(plot_config["legend"])
-        ax.set(xlabel=plot_config["xlabel"], ylabel=plot_config["ylabel"], title=plot_config["title"])
+        ax.set(
+            xlabel=plot_config["xlabel"],
+            ylabel=plot_config["ylabel"],
+            title=plot_config["title"],
+        )
         if "grid" in plot_config and plot_config["grid"]:
             ax.grid(True, which="major", linewidth="0.5", color="black", alpha=0.9)
         if "subgrid" in plot_config and plot_config["subgrid"]:
             ax.minorticks_on()
-            ax.grid(which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75)
-        fig.savefig(self._config["path"]+"\\"+name+".pgf")
-        fig.savefig(self._config["path"]+"\\"+name+".png")
+            ax.grid(
+                which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75
+            )
+        fig.savefig(self._config["path"] + "\\" + name + ".pgf")
+        fig.savefig(self._config["path"] + "\\" + name + ".png")
         plt.close(fig)
 
-
     def generate_scatter_plot(self, name):
-        self._log.info("Generating time scatter plot " + name + " to: " + self._config["path"])
+        self._log.info(
+            "Generating time scatter plot " + name + " to: " + self._config["path"]
+        )
         plot_config = self._config["plots"][name]
         x_value = self._data[self.get_node_by_name(plot_config["x_var"])]
         fig, ax = plt.subplots()
@@ -88,12 +106,18 @@ class Logger(SimulationComponent):
             ax.plot(x_value, self._data[nodeID], "x")
         if "legend" in plot_config.keys():
             ax.legend(plot_config["legend"])
-        ax.set(xlabel=plot_config["xlabel"], ylabel=plot_config["ylabel"], title=plot_config["title"])
+        ax.set(
+            xlabel=plot_config["xlabel"],
+            ylabel=plot_config["ylabel"],
+            title=plot_config["title"],
+        )
         if "grid" in plot_config and plot_config["grid"]:
             ax.grid(True, which="major", linewidth="0.5", color="black", alpha=0.9)
         if "subgrid" in plot_config and plot_config["subgrid"]:
             ax.minorticks_on()
-            ax.grid(which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75)
-        fig.savefig(self._config["path"]+"\\"+name+".pgf")
-        fig.savefig(self._config["path"]+"\\"+name+".png")
+            ax.grid(
+                which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75
+            )
+        fig.savefig(self._config["path"] + "\\" + name + ".pgf")
+        fig.savefig(self._config["path"] + "\\" + name + ".png")
         plt.close(fig)

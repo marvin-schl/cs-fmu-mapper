@@ -6,7 +6,7 @@ from components.simulation_component import SimulationComponent
 
 
 class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
-    
+
     type = "plc"
 
     def __init__(self, config, name) -> None:
@@ -26,17 +26,19 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
         self._s1 = 0
         self._s2 = 0
         self._exec_times = np.array([])
-        self._exec_time = 0 
+        self._exec_time = 0
 
     async def init_nodes(self):
         await super().init_nodes()
         self._stepNode = self._connection.get_node(self._config["stepNodeID"])
         self._finishedNode = self._connection.get_node(self._config["finishedNodeID"])
         self._terminateNode = self._connection.get_node(self._config["terminateNodeID"])
-        self._simulationFinishedNode = self._connection.get_node(self._config["simulationFinishedNodeID"])
+        self._simulationFinishedNode = self._connection.get_node(
+            self._config["simulationFinishedNodeID"]
+        )
         self._mapper.init_node_maps()
 
-    async def _run(self):                
+    async def _run(self):
         while self._running:
             curStepNodeVal = await self._stepNode.read_value()
             terminateNodeVal = await self._terminateNode.read_value()
@@ -47,7 +49,9 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
             self._stepNodeVal = curStepNodeVal
 
             if self._simulationFinished:
-                await self._simulationFinishedNode.write_value(True, VariantType.Boolean)
+                await self._simulationFinishedNode.write_value(
+                    True, VariantType.Boolean
+                )
 
     async def do_step(self, t=None, dt=None):
         self._start_time = time.time_ns()
@@ -61,7 +65,7 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
             input_node = self._nodes[input]
             type = await input_node.read_data_type_as_variant_type()
             await input_node.write_value(self.get_input_value(input), type)
-       
+
         await self._finishedNode.write_value(True, VariantType.Boolean)
         self._calculate_periodtime_stats()
         self._exec_time = (time.time_ns() - self._start_time) / 1000000
@@ -83,15 +87,26 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
             self._s1 = self._s1 + self._exec_time
             self._s2 = self._s2 + self._exec_time**2
             mean = np.round(self._s1 / self._n, 2)
-            std = np.round(np.sqrt(self._s2 / self._n - (self._s1 / self._n)**2), 2)
+            std = np.round(np.sqrt(self._s2 / self._n - (self._s1 / self._n) ** 2), 2)
             if not (self._k % 1000 == 0):
-                self._log.debug("Simulation execution time: mean=" + str(mean) + "ms, std=" + str(std) + " ms")
+                self._log.debug(
+                    "Simulation execution time: mean="
+                    + str(mean)
+                    + "ms, std="
+                    + str(std)
+                    + " ms"
+                )
             else:
-                self._log.info("Simulation execution time: mean=" + str(mean) + "ms, std=" + str(std) + " ms")
+                self._log.info(
+                    "Simulation execution time: mean="
+                    + str(mean)
+                    + "ms, std="
+                    + str(std)
+                    + " ms"
+                )
 
     async def _finalize(self):
         self._mapper.finalize()
         self._running = False
         await super()._finalize()
         # np.save("execution_time.npy", self._exec_times)
-
