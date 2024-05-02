@@ -15,6 +15,7 @@ class SimulationComponent(ABC):
         self._log.info("Initializing " + str(self.__class__.__name__) + ".")
         self._config = config
         self._name = name
+        self._is_finished = True
 
         self._input_values = None
         self._output_values = None
@@ -106,7 +107,10 @@ class SimulationComponent(ABC):
         pass
 
     def is_finished(self):
-        return True
+        return self._is_finished
+
+    def set_is_finished(self, val):
+        self._is_finished = val
 
     def notify_simulation_finished(self):
         pass
