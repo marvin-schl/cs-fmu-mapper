@@ -179,7 +179,10 @@ class ExternalOPCUAClient(SimulationComponent):
 
     async def run(self) -> None:
         try:
-            await self._step()
+            run_node = self._connection.get_node(
+                self._names_id_map[self._run_node_name]
+            )
+            await run_node.write_value(True, asyncua.ua.uatypes.VariantType.Boolean)
         except (asyncio.CancelledError, KeyboardInterrupt):
             self._log.info("Canceling OPCUA Client...")
             await self._finalize()
