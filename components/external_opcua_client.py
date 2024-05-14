@@ -97,13 +97,17 @@ class ExternalOPCUAClient(SimulationComponent):
 
     async def terminate(self):
         """Initiate termination without catching an exception."""
-        print("Terminating OPCUA Client...")
         self._log.info("Terminating OPCUA Client...")
         terminate_node = self._connection.get_node(
             self._names_id_map[self._terminate_node_name]
         )
         await terminate_node.write_value(True, asyncua.ua.uatypes.VariantType.Boolean)
-        print("Simulation terminated.")
+
+        try:
+            await self._do_single_step()
+        except:
+            pass
+        self._log.info("OPCUA client terminated.")
 
     def is_connected(self):
         """Check if Client is connected.
@@ -172,8 +176,10 @@ class ExternalOPCUAClient(SimulationComponent):
 
         self._names_id_map = await self._map_nodeIDs_to_nodeNames(all_node_names)
 
-        print(f"Connection established with OPCUA Server at {self._host}:{self._port}")
-        print(
+        self._log.info(
+            f"Connection established with OPCUA Server at {self._host}:{self._port}"
+        )
+        self._log.debug(
             f"Node initialization completed with mapping from names to node IDs as follows: {self._names_id_map}"
         )
 
@@ -250,7 +256,6 @@ class ExternalOPCUAClient(SimulationComponent):
 
         if await self.get_time() >= self._stop_time:
             await self.terminate()
-            await self._disconnect()
 
     def print_step_debug_evaluation(self):
         "Print statistics of how many steps were performed correctly, too large or too small."
