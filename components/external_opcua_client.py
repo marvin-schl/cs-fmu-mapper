@@ -25,6 +25,7 @@ class ExternalOPCUAClient(SimulationComponent):
         self._run_node_name = config["runNodeName"]
         self._enable_stop_time_node_name = config["enableStopTimeNodeName"]
         self._time_node_name = config["timeNodeName"]
+        self._step_size = config["stepSize"]
         self._stop_time = stop_time
         self._connection: asyncua.Client = None
         self._nodes = {}
@@ -32,10 +33,19 @@ class ExternalOPCUAClient(SimulationComponent):
         self._lock = lock
         self._names_id_map = {}
 
+        self._wrong_step_counter = 0
+        self._correct_step_counter = 0
+        self._too_large_ts_counter = 0
+        self._correct_full_step_counter = 0
+        self._false_full_step_counter = 0
+        self._too_large_full_step_counter = 0
+
     async def _connect(self):
         """Connects client to OPCUA Server if it isn't already connected."""
         if not self.is_connected():
-            self._log.info("Connecting to Client to OPCUA server...")
+            self._log.info(
+                "Connecting to OPCUA Server at " + self._host + ":" + self._port + "/"
+            )
             self._connection = asyncua.Client(
                 url="opc.tcp://" + self._host + ":" + self._port + "/"
             )
@@ -179,7 +189,15 @@ class ExternalOPCUAClient(SimulationComponent):
     async def _do_single_step(self):
         """Perform a single step of the simulation. The step_size is determined by the external OPCUA server."""
         step_node = self._connection.get_node(self._names_id_map[self._step_node_name])
+        start_time = await self.get_time()
         await step_node.write_value(True, asyncua.ua.uatypes.VariantType.Boolean)
+        # wait until the step is finished
+        while True:
+            value = await step_node.read_value()
+            if value == False and await self.get_time() > start_time:
+                break
+            else:
+                await asyncio.sleep(0.000001)
 
     async def do_step(self, t=None, dt=None):
         """Perform a simulation step. One step consists of multiple single steps, where the number of single steps is described by the steps_per_cycle class attribute.
@@ -192,25 +210,99 @@ class ExternalOPCUAClient(SimulationComponent):
 
         assert self.is_connected(), "Client is not connected to OPCUA Server."
 
-        await self.set_enable_stop_time(False)
-
         self._log.debug("Setting FMU Input")
         await self._set_input_values()
 
-        print("--------------------Do Step------------------------")
         self._log.debug("Stepping Simulation")
-        print(f"Performing {self._steps_per_cycle} steps per cycle.")
 
-        for _ in range(0, self._steps_per_cycle):
-            print("Single Step")
-            await self._do_single_step()
+        start_time = await self.get_time()
+        temp_time = await self.get_time()
+        # Workaround because not every step call performs a step
+        while (await self.get_time()) < (
+            start_time + self._steps_per_cycle * self._step_size
+        ):
+            if await self.get_time() < self._stop_time:
+                await self._do_single_step()
+                if await self.get_time() == temp_time + self._step_size:
+                    self._correct_step_counter += 1
+                elif await self.get_time() > temp_time + self._step_size:
+                    self._too_large_ts_counter += 1
+                else:
+                    self._wrong_step_counter += 1
+                temp_time = await self.get_time()
+            else:
+                break
+
+        if (
+            await self.get_time()
+            == start_time + self._step_size * self._steps_per_cycle
+        ):
+            self._correct_full_step_counter += 1
+        elif await self.get_time() > start_time:
+            self._too_large_full_step_counter += 1
+        else:
+            self._false_full_step_counter += 1
 
         await self._read_output_values()
 
         if await self.get_time() >= self._stop_time:
-            await self.set_enable_stop_time(True)
             await self.terminate()
             await self._disconnect()
+
+    def print_step_debug_evaluation(self):
+        "Print statistics of how many steps were performed correctly, too large or too small."
+
+        print()
+        print("----- [DEBUG] Step evaluation -----")
+        total_steps = (
+            self._wrong_step_counter
+            + self._too_large_ts_counter
+            + self._correct_step_counter
+        )
+        print()
+        print(f"Total single steps performed: {total_steps}")
+        print(
+            f"Too small single steps: {self._wrong_step_counter}, ratio to total steps: {round((self._wrong_step_counter / total_steps)*100,2)} %"
+        )
+        print(
+            f"Too large single steps: {self._too_large_ts_counter}, ratio to total steps: {round((self._too_large_ts_counter / total_steps)*100,2)} %"
+        )
+        print(
+            f"Total wrong single steps: {self._wrong_step_counter + self._too_large_ts_counter}, ratio to total steps: {round(((self._wrong_step_counter + self._too_large_ts_counter) / total_steps)*100,2)} %"
+        )
+        print(
+            f"Correct single steps: {self._correct_step_counter}, ratio to total steps: {round((self._correct_step_counter / total_steps)*100,2)} %"
+        )
+        print()
+        total_full_steps = (
+            self._correct_full_step_counter
+            + self._too_large_full_step_counter
+            + self._false_full_step_counter
+        )
+        print(f"Total full steps performed: {total_full_steps}")
+        print(
+            f"Too small full steps: {self._false_full_step_counter}, ratio to total steps: {round((self._false_full_step_counter / total_full_steps)*100,2)} %"
+        )
+        print(
+            f"Too large full steps: {self._too_large_full_step_counter}, ratio to total steps: {round((self._too_large_full_step_counter / total_full_steps)*100,2)} %"
+        )
+        print(
+            f"Total wrong full steps: {self._false_full_step_counter + self._too_large_full_step_counter}, ratio to total steps: {round(((self._false_full_step_counter + self._too_large_full_step_counter) / total_full_steps)*100,2)} %"
+        )
+        print(
+            f"Correct full steps: {self._correct_full_step_counter}, ratio to total steps: {round((self._correct_full_step_counter / total_full_steps)*100,2)} %"
+        )
+        print()
+        print("----- -----")
+        print()
+
+    async def reset(self):
+        """Reset the simulation by setting the time to 0."""
+        # TODO A reset functionality would be nice because starting the opcua server is time consuming
+        # TODO Not sure if this is possible because it seems like time cannot be resetted
+        # time_node = self._connection.get_node(self._names_id_map[self._time_node_name])
+        # await time_node.write_value(0.0, asyncua.ua.uatypes.VariantType.Float)
+        pass
 
     async def _set_input_values(self):
         """Set input values from class attribute to OPCUA server."""
