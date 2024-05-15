@@ -90,3 +90,9 @@ For logging purposes, these three methods can be used:
 ```
 
 ## Known Issues
+
+## TODOs
+
+- [ ] Make do_step() method async
+- [ ] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. This method should be called in the main loop of the program.
+- [ ] Make sure that AbstractOPCUA client uses its own logger and not the SimulationComponent logger
