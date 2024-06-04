@@ -15,12 +15,13 @@ class FMUSimClient(SimulationComponent):
 
     type = None
 
-    def __init__(self, config, name):
+    def __init__(self, config, name="FMUSimClient"):
         """Creates an instance of a FMUSimClient. This class wraps the FMU into a simulation object which can be simulated in single steps. This class
         also provides method to read the configured output values between simulation steps and write the configured input values.
 
         Args:
             config (dict): Section of the configuration which configures the FMU Simulation.
+            name (str, optional): Name of the FMUSimClient. Defaults to "FMUSimClient".
 
         Raises:
             TypeError: Is raised if the configured FMU is not compiled as Co-Simulation FMU.
@@ -36,7 +37,7 @@ class FMUSimClient(SimulationComponent):
                 )
                 path = config["path"] + "/" + file
         else:
-            raise FileNotFoundError("Scenario file not found at: " + config["path"])
+            raise FileNotFoundError("FMU not found at: " + config["path"])
         self._model = self._load_model(path)
 
         self._log.info("Loaded FMU successfully.")
@@ -65,16 +66,21 @@ class FMUSimClient(SimulationComponent):
     def _call_fmu_step(self):
         pass
 
-    def do_step(self, t, dt):
-        """Triggers the configured amount of steps per cycle each"""
+    def do_step(self, t: float, dt: float):
+        """Triggers the configured amount of steps per cycle each
+
+        Args:
+            t (float): The current communication point (current time) of the master.
+            dt (float, optional): Step size for a step including the steps per cycle. The step size for a single step is therefore dt/steps_per_cycle.
+        """
+
         self._log.debug("Setting FMU Input")
         self._set_input_values()
 
         self._log.debug("Stepping Simulation")
 
-        ans = None
         t_loop = t
-        for i in range(0, self._steps_per_cycle):
+        for _ in range(0, self._steps_per_cycle):
             self._call_fmu_step(t_loop, dt / self._steps_per_cycle)
             t_loop = t_loop + dt / self._steps_per_cycle
 
