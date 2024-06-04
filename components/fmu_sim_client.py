@@ -73,8 +73,10 @@ class FMUSimClient(SimulationComponent):
         self._log.debug("Stepping Simulation")
 
         ans = None
+        t_loop = t
         for i in range(0, self._steps_per_cycle):
-            self._call_fmu_step(t, dt / self._steps_per_cycle)
+            self._call_fmu_step(t_loop, dt / self._steps_per_cycle)
+            t_loop = t_loop + dt / self._steps_per_cycle
 
         self._log.debug("Reading Simulation Output.")
         self._read_output_values()
@@ -161,4 +163,5 @@ class PyFMISimClient(FMUSimClient):
             self.set_output_value(key, val[0])
 
     def _call_fmu_step(self, t, dt):
+        print(t, dt)
         self._model.do_step(t, dt, True)
