@@ -169,5 +169,4 @@ class PyFMISimClient(FMUSimClient):
             self.set_output_value(key, val[0])
 
     def _call_fmu_step(self, t, dt):
-        print(t, dt)
         self._model.do_step(t, dt, True)
