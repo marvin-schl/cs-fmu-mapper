@@ -1,5 +1,5 @@
 import asyncio
-from components.simulation_component import SimulationComponent
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 import asyncua.common
 
 

@@ -9,6 +9,12 @@
     > $ pip3 install -r requirements.txt
 ```
 
+This repository can be installed as a package via pip. The package has not yet been uploaded to PyPI. Therefore, the package has to be installed locally. By cloning the repository and executing the following command in the root directory of the repository the package will be installed. All dependencies will be installed automatically but note that pyfmi has to be installed manually as it cannot be installed via pip.
+
+```bash
+    > $ pip install .
+```
+
 ## Executing Example
 
 ```bash

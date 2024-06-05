@@ -3,7 +3,7 @@ from tqdm import tqdm
 import os
 from cs_fmu_mapper.utils import chooseFile
 import logging
-from components.simulation_component import SimulationComponent
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 
 
 class Scenario(SimulationComponent):

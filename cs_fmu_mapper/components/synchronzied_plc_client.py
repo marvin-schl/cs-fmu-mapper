@@ -1,8 +1,8 @@
 import time
 import numpy as np
 from asyncua.ua.uatypes import VariantType
-from components.opcua_client import AbstractOPCUAClient
-from components.simulation_component import SimulationComponent
+from cs_fmu_mapper.components.opcua_client import AbstractOPCUAClient
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 
 
 class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):

@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
-from components.simulation_component import SimulationComponent
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 
 
 class Logger(SimulationComponent):

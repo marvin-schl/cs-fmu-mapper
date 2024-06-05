@@ -7,7 +7,7 @@ with open("README.md") as f:
 
 setup(
     name="cs_fmu_mapper",
-    version="0.0.1",
+    version="0.1.0",
     description="A tool to map FMUs to a common interface for simulation.",
     author="Marvin Schlageter, Cedric Ewen",
     author_email="marvin.schlageter@buildlinx.de",
