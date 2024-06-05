@@ -5,7 +5,7 @@ import numpy as np
 import logging
 from abc import abstractmethod, ABC
 import os
-from utils import chooseFile
+from cs_fmu_mapper.utils import chooseFile
 from fmpy.fmi2 import FMU2Slave
 from fmpy import extract, read_model_description
 from components.simulation_component import SimulationComponent

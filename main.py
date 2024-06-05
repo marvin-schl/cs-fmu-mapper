@@ -1,6 +1,6 @@
 #!/usr/bin/python
-from opcua_fmu_mapper import OPCUAFMUMapper
-from component_factory import ComponentFactory
+from cs_fmu_mapper.opcua_fmu_mapper import OPCUAFMUMapper
+from cs_fmu_mapper.component_factory import ComponentFactory
 import asyncio
 import json
 import argparse
