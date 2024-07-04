@@ -14,6 +14,9 @@ class Logger(SimulationComponent):
         self._data = {}
         for key in self._config["inputVar"].keys():
             self._data[self._config["inputVar"][key]["nodeID"]] = []
+        self._usetex = False
+        if "usetex" in self._config.keys():
+            self._usetex = self._config["usetex"]
 
     def get_output_values(self):
         raise NotImplementedError()
@@ -29,12 +32,11 @@ class Logger(SimulationComponent):
         self._log.info("Finalizing Logger.")
         self._data["time"] = self._t
 
-        if "usetex" in self._config.keys():
-            plt.rcParams.update(
-                {
-                    "text.usetex": self._config["usetex"],
-                }
-            )
+        plt.rcParams.update(
+            {
+                "text.usetex": self._usetex,
+            }
+        )
 
         if "fontfamily" in self._config.keys():
             plt.rcParams.update(
@@ -90,7 +92,8 @@ class Logger(SimulationComponent):
             ax.grid(
                 which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75
             )
-        fig.savefig(self._config["path"] + "\\" + name + ".pgf")
+        if self._usetex:
+            fig.savefig(self._config["path"] + "\\" + name + ".pgf")
         fig.savefig(self._config["path"] + "\\" + name + ".png")
         plt.close(fig)
 
@@ -118,6 +121,7 @@ class Logger(SimulationComponent):
             ax.grid(
                 which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75
             )
-        fig.savefig(self._config["path"] + "\\" + name + ".pgf")
+        if self._usetex:
+            fig.savefig(self._config["path"] + "\\" + name + ".pgf")
         fig.savefig(self._config["path"] + "\\" + name + ".png")
         plt.close(fig)
