@@ -6,6 +6,46 @@
     <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
       <Single Name="IsRoot" Type="bool">True</Single>
       <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
+        <Single Name="Guid" Type="System.Guid">2e108d32-08fa-4619-860c-3737f5776ad3</Single>
+        <Single Name="ParentGuid" Type="System.Guid">0d12abda-398f-4f09-b609-74679d20bce9</Single>
+        <Single Name="Name" Type="string">SimulationState</Single>
+        <Dictionary Type="{2c41fa04-1834-41c1-816e-303c7aa2c05b}" Name="Properties" />
+        <Single Name="TypeGuid" Type="System.Guid">2db5746d-d284-4425-9f7f-2663a34b0ebc</Single>
+        <Array Name="EmbeddedTypeGuids" Type="System.Guid">
+          <Single Type="System.Guid">a9ed5b7e-75c5-4651-af16-d2c27e98cb94</Single>
+        </Array>
+        <Single Name="Timestamp" Type="long">638458555881837903</Single>
+      </Single>
+      <Single Name="Object" Type="{2db5746d-d284-4425-9f7f-2663a34b0ebc}" Method="IArchivable">
+        <Single Name="Interface" Type="{a9ed5b7e-75c5-4651-af16-d2c27e98cb94}" Method="IArchivable">
+          <Single Name="TextDocument" Type="{f3878285-8e4f-490b-bb1b-9acbb7eb04db}" Method="IArchivable">
+            <Single Name="TextBlobForSerialisation" Type="string">{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE SimulationState :
+(
+	IDLE := 0,
+	STEP_TRIGGER := 1,
+	STEP_CALCULATION :=2,
+	ERROR := 3
+);
+END_TYPE
+</Single>
+            <Single Name="LineInfoPersistence" Type="string">2e108d32-08fa-4619-860c-3737f5776ad3_Decl_LineIds</Single>
+          </Single>
+        </Single>
+        <Single Name="UniqueIdGenerator" Type="string">11</Single>
+      </Single>
+      <Single Name="ParentSVNodeGuid" Type="System.Guid">0d12abda-398f-4f09-b609-74679d20bce9</Single>
+      <Array Name="Path" Type="string">
+        <Single Type="string">Device</Single>
+        <Single Type="string">PLC Logic</Single>
+        <Single Type="string">Application</Single>
+      </Array>
+      <Single Name="Index" Type="int">-1</Single>
+    </Single>
+    <Single Type="{6198ad31-4b98-445c-927f-3258a0e82fe3}" Method="IArchivable">
+      <Single Name="IsRoot" Type="bool">True</Single>
+      <Single Name="MetaObject" Type="{81297157-7ec9-45ce-845e-84cab2b88ade}" Method="IArchivable">
         <Single Name="Guid" Type="System.Guid">ed986165-82c7-4e55-b19a-5a3b6a12a5ac</Single>
         <Single Name="ParentGuid" Type="System.Guid">0d12abda-398f-4f09-b609-74679d20bce9</Single>
         <Single Name="Name" Type="string">SimulationWatchdog</Single>
