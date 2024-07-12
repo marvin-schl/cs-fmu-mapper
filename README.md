@@ -88,6 +88,10 @@ For logging purposes, these three methods can be used:
     def log_debug(self, msg)
     def log_warning(self, msg)
 ```
+## Class Diagram
+
+![Class Diagram](img/class_diagram_cs_mapper.jpg)
+
 
 ## Known Issues
 
