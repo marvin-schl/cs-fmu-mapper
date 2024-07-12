@@ -92,9 +92,6 @@ class SimulationComponent(ABC):
     def finalize(self):
         pass
 
-    def initialize(self):
-        pass
-
     def contains(self, name):
         if self._input_values and self._output_values:
             return (

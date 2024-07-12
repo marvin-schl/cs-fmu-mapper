@@ -1,4 +1,4 @@
-from components.synchronzied_plc_client import SynchronizedPlcClient
+from cs_fmu_mapper.components.synchronzied_plc_client import SynchronizedPlcClient
 import logging
 
 
@@ -55,17 +55,17 @@ class OPCUAFMUMapper:
             map(lambda x: (x, self.get_component_to_name(x)), names)
         )
 
-    def simulate(self):
+    async def simulate(self):
         scenarios = list(
             filter(lambda x: x.get_type() == "scenario", self._components.values())
         )
         scenario_states = list(map(lambda x: x.is_finished(), scenarios))
         while not all(scenario_states):
-            self.do_step()
+            await self.do_step()
             scenario_states = list(map(lambda x: x.is_finished(), scenarios))
         self.finalize()
 
-    def do_step(self):
+    async def do_step(self):
         """Writes input values into Simulation, steps the simulation and reads the outputs of the simulation after the step is finished.
         Args:
             plc_outputs (dict): A dict which contains the nodeIDs of the PLCs output variables. The keys of the the dict are internally overwritten by the nodeID of the
@@ -87,7 +87,7 @@ class OPCUAFMUMapper:
         # step all compoments which are not a plc and have a do_step method
         for component in self._components.values():
             if component.get_type() != "plc":
-                component.do_step(self._t, self._timestep_per_cycle)
+                await component.do_step(self._t, self._timestep_per_cycle)
 
         for source, destinations in self._post_step_maps.items():
             source_component = self._name_component_map[source]

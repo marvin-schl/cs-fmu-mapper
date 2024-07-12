@@ -1,5 +1,5 @@
 # from components.simulation_component import SimulationComponent
-from components import *
+from cs_fmu_mapper.components import *
 
 
 class ComponentFactory:

@@ -66,7 +66,7 @@ class FMUSimClient(SimulationComponent):
     def _call_fmu_step(self):
         pass
 
-    def do_step(self, t: float, dt: float):
+    async def do_step(self, t: float, dt: float):
         """Triggers the configured amount of steps per cycle each
 
         Args:

@@ -92,6 +92,25 @@ else:
     mapper = OPCUAFMUMapper(
         config=config["Mapping"], plc_client=None, mappables=component_list
     )
-    mapper.simulate()
+    logger.info("Starting eventloop for standalone simulation...")
+    loop = asyncio.get_event_loop()
+    # run asyncio task until a KeyboardInterrupt(Ctrl +C ) is catched
 
+    # necessary for graceful stopping of asyncio coroutines via Ctrl + C under Windows
+    if (
+        sys.version_info[0] == 3
+        and sys.version_info[1] >= 8
+        and sys.platform.startswith("win")
+    ):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    try:
+        loop.run_until_complete(mapper.simulate())
+    except KeyboardInterrupt:
+        logger.info("Initiating graceful exit due to KeyboardInterrupt")
+        # if interrupted add kill_task coroutine to event loop
+        # kill_task invokes asnycio.CancelledError in every running task so the task can finalize and terminate themselfs
+        # SimulationClient should toogle 'terminate' node of modelicas OPCUA Server which then shuts down and initiates termination of Simulation
+        loop.run_until_complete(kill_tasks())
+
+    loop.close()
 logger.info("Graceful exit completed.")

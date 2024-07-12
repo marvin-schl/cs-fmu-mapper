@@ -79,7 +79,7 @@ Logger:
       type: time_series
       title: Filter Step Response
       subgrid: true              #optional
-      grid: true  	             #optional
+      grid: true                 #optional
       vars:
       - log_u
       - log_y

@@ -43,7 +43,7 @@ class Scenario(SimulationComponent):
             if self._config["outputVar"][name]["nodeID"] == nodeID:
                 return name
 
-    def do_step(self, t, dt):
+    async def do_step(self, t, dt):
         self._pbar_update_counter = self._pbar_update_counter + 1
         if self._pbar_update_counter == int(1 / dt):
             self._pbar.update(1)

@@ -18,7 +18,7 @@ class Logger(SimulationComponent):
     def get_output_values(self):
         raise NotImplementedError()
 
-    def do_step(self, t, dt):
+    async def do_step(self, t, dt):
         for key, val in self.get_input_values().items():
             nodeID = self.get_node_by_name(key)
             self._data[nodeID].append(val)
