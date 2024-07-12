@@ -89,10 +89,10 @@ class SimulationComponent(ABC):
     def get_type(self):
         return self._config["type"]
 
-    def finalize(self):
+    async def finalize(self):
         pass
 
-    def initialize(self):
+    async def initialize(self):
         pass
 
     def contains(self, name):

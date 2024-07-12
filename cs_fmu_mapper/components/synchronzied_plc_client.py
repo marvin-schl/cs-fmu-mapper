@@ -43,7 +43,7 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
             curStepNodeVal = await self._stepNode.read_value()
             terminateNodeVal = await self._terminateNode.read_value()
             if terminateNodeVal:
-                await self._finalize()
+                await self.finalize()
             elif not self._stepNodeVal and curStepNodeVal:
                 await self.do_step()
             self._stepNodeVal = curStepNodeVal
@@ -105,8 +105,8 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
                     + " ms"
                 )
 
-    async def _finalize(self):
-        self._mapper.finalize()
+    async def finalize(self):
+        await self._mapper.finalize()
         self._running = False
-        await super()._finalize()
+        await super().finalize()
         # np.save("execution_time.npy", self._exec_times)

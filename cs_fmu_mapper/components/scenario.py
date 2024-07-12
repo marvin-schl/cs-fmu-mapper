@@ -71,7 +71,7 @@ class Scenario(SimulationComponent):
             self._pbar.close()
             self._log.info("Scenario finished at .")
 
-    def finalize(self):
+    async def finalize(self):
         return True
 
     def is_finished(self):

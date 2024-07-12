@@ -63,7 +63,7 @@ class OPCUAFMUMapper:
         while not all(scenario_states):
             await self.do_step()
             scenario_states = list(map(lambda x: x.is_finished(), scenarios))
-        self.finalize()
+        await self.finalize()
 
     async def do_step(self):
         """Writes input values into Simulation, steps the simulation and reads the outputs of the simulation after the step is finished.
@@ -109,11 +109,11 @@ class OPCUAFMUMapper:
     def fmu_log_callback_wrapper(self, module, level, message):
         self._log.info(message)
 
-    def finalize(self):
+    async def finalize(self):
         """Finalizes the simulation and all components."""
         self._log.info("Finalizing simulation...")
         for component in self._components.values():
             if component.get_type() != "plc":
-                component.finalize()
+                await component.finalize()
         self._log.info("Simulation finished.")
         return True

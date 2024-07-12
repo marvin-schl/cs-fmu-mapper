@@ -106,6 +106,6 @@ class AbstractOPCUAClient(ABC):
         """This method has to be implemented by every child. Periodic read of output values, periodic write of input values and any other client specific initialization and/or periodic operations have to implemented."""
         pass
 
-    async def _finalize(self):
+    async def finalize(self):
         """Invoked after asnycua.Cancelled error is catched. Overwrite by child for client specific finalization tasks."""
         pass

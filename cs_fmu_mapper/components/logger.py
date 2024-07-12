@@ -25,7 +25,7 @@ class Logger(SimulationComponent):
         self._t.append(t)
         return True
 
-    def finalize(self):
+    async def finalize(self):
         self._log.info("Finalizing Logger.")
         self._data["time"] = self._t
 
