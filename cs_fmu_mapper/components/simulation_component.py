@@ -90,12 +90,17 @@ class SimulationComponent(ABC):
         return self._config["type"]
 
     async def finalize(self):
+        """Callback Function which is called after last do_step to finalize the component."""
         pass
 
     async def initialize(self):
+        """Callback Function which is called before first do_step to initialize the component."""
         pass
 
     def contains(self, name):
+        if not self._input_values and not self._output_values:
+            return False
+
         if self._input_values and self._output_values:
             return (
                 name in self._input_values.keys() or name in self._output_values.keys()

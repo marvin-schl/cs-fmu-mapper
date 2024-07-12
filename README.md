@@ -99,6 +99,9 @@ For logging purposes, these three methods can be used:
 
 ## TODOs
 
-- [x] Make do_step() method async - to be tested
-- [ ] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. This method should be called in the main loop of the program.
+- [x] Make do_step() method async 
+  - [ ] to be tested
+- [x] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. This method should be called in the main loop of the program.
+    => initialize method added in Simulation Component is called by mapper before first do_step() 
 - [ ] Make sure that AbstractOPCUA client uses its own logger and not the SimulationComponent logger
+- [ ] Add comments to methods

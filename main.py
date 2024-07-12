@@ -57,60 +57,28 @@ elif args.config_path.endswith(".yaml") or args.config_path.endswith(".yml"):
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 logger.info("Creating PLCClient, FMU Simualation and Mapper Instance...")
-plcclient, component_list = ComponentFactory().createComponents(config)
+master = ComponentFactory().createComponents(config)
 
-if plcclient:
-    # setup an sil simulation with plc as simulation master
-    mapper = OPCUAFMUMapper(
-        config=config["Mapping"], plc_client=plcclient, mappables=component_list
-    )
-    plcclient.set_mapper(mapper)
+logger.info("Starting eventloop...")
+loop = asyncio.get_event_loop()
+# run asyncio task until a KeyboardInterrupt(Ctrl +C ) is catched
 
-    logger.info("Starting eventloop...")
-    loop = asyncio.get_event_loop()
-    # run asyncio task until a KeyboardInterrupt(Ctrl +C ) is catched
+# necessary for graceful stopping of asyncio coroutines via Ctrl + C under Windows
+if (
+    sys.version_info[0] == 3
+    and sys.version_info[1] >= 8
+    and sys.platform.startswith("win")
+):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+try:
+    loop.run_until_complete(master.run())
+except KeyboardInterrupt:
+    logger.info("Initiating graceful exit due to KeyboardInterrupt")
+    # if interrupted add kill_task coroutine to event loop
+    # kill_task invokes asnycio.CancelledError in every running task so the task can finalize and terminate themselfs
+    # SimulationClient should toogle 'terminate' node of modelicas OPCUA Server which then shuts down and initiates termination of Simulation
+    loop.run_until_complete(kill_tasks())
 
-    # necessary for graceful stopping of asyncio coroutines via Ctrl + C under Windows
-    if (
-        sys.version_info[0] == 3
-        and sys.version_info[1] >= 8
-        and sys.platform.startswith("win")
-    ):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    try:
-        loop.run_until_complete(plcclient.run())
-    except KeyboardInterrupt:
-        logger.info("Initiating graceful exit due to KeyboardInterrupt")
-        # if interrupted add kill_task coroutine to event loop
-        # kill_task invokes asnycio.CancelledError in every running task so the task can finalize and terminate themselfs
-        # SimulationClient should toogle 'terminate' node of modelicas OPCUA Server which then shuts down and initiates termination of Simulation
-        loop.run_until_complete(kill_tasks())
+loop.close()
 
-    loop.close()
-else:
-    # if no plc client is created this script
-    mapper = OPCUAFMUMapper(
-        config=config["Mapping"], plc_client=None, mappables=component_list
-    )
-    logger.info("Starting eventloop for standalone simulation...")
-    loop = asyncio.get_event_loop()
-    # run asyncio task until a KeyboardInterrupt(Ctrl +C ) is catched
-
-    # necessary for graceful stopping of asyncio coroutines via Ctrl + C under Windows
-    if (
-        sys.version_info[0] == 3
-        and sys.version_info[1] >= 8
-        and sys.platform.startswith("win")
-    ):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    try:
-        loop.run_until_complete(mapper.simulate())
-    except KeyboardInterrupt:
-        logger.info("Initiating graceful exit due to KeyboardInterrupt")
-        # if interrupted add kill_task coroutine to event loop
-        # kill_task invokes asnycio.CancelledError in every running task so the task can finalize and terminate themselfs
-        # SimulationClient should toogle 'terminate' node of modelicas OPCUA Server which then shuts down and initiates termination of Simulation
-        loop.run_until_complete(kill_tasks())
-
-    loop.close()
 logger.info("Graceful exit completed.")

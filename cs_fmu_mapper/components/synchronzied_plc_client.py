@@ -2,10 +2,10 @@ import time
 import numpy as np
 from asyncua.ua.uatypes import VariantType
 from cs_fmu_mapper.components.opcua_client import AbstractOPCUAClient
-from cs_fmu_mapper.components.simulation_component import SimulationComponent
+from cs_fmu_mapper.components.master_component import MasterComponent
 
 
-class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
+class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
 
     type = "plc"
 
@@ -18,7 +18,6 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
 
         self._simulationFinished = False
         self._stepNodeVal = False
-        self._mapper = None
         self._start_time = 0
 
         self._k = 0
@@ -39,6 +38,7 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
         self._mapper.init_node_maps()
 
     async def _run(self):
+        await super().initialize()
         while self._running:
             curStepNodeVal = await self._stepNode.read_value()
             terminateNodeVal = await self._terminateNode.read_value()
@@ -59,7 +59,7 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
             output_node = self._nodes[output]
             self.set_output_value(output, await output_node.read_value())
 
-        self._mapper.do_step()
+        await super.do_step(None, None)
 
         for input in self.get_input_values().keys():
             input_node = self._nodes[input]
@@ -70,14 +70,8 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
         self._calculate_periodtime_stats()
         self._exec_time = (time.time_ns() - self._start_time) / 1000000
 
-    def set_mapper(self, mapper):
-        self._mapper = mapper
-
     def notify_simulation_finished(self):
         self._simulationFinished = True
-
-    def set_time_per_cycle(self, time_per_cycle):
-        self._time_per_cycle = time_per_cycle
 
     def _calculate_periodtime_stats(self):
         self._exec_times = np.append(self._exec_times, [self._exec_time])
@@ -106,7 +100,6 @@ class SynchronizedPlcClient(SimulationComponent, AbstractOPCUAClient):
                 )
 
     async def finalize(self):
-        await self._mapper.finalize()
         self._running = False
         await super().finalize()
         # np.save("execution_time.npy", self._exec_times)

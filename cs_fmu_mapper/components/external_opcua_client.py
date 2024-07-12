@@ -336,3 +336,7 @@ class ExternalOPCUAClient(SimulationComponent):
     async def finalize(self):
         """Invoked after asnycua.Cancelled error is catched. Overwrite by child for client specific finalization tasks."""
         pass
+
+    async def initialize(self):
+        """Invoked by mapper instance before first do_step call."""
+        await self.connect()

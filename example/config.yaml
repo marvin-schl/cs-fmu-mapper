@@ -1,3 +1,9 @@
+Master:
+  type: standalone-master
+  timeStepPerCycle: 0.01
+#  tend: 4
+
+
 ############################################################################################################################################################################################################################################
 # FMU Components can be defined by specifying the type as fmu. Available backend options are 'pyfmi' and 'fmpy' to specify which fmi library python should use to interact with the FMU.                                                   #
 # The path specifies the location of the FMU file or alternatively a directory where multiple FMUs are located. For the latter case you can choose at each startup of the program the FMU that shall be simulated.                         #
@@ -25,6 +31,7 @@ Filter:
 ######################################################################################################################################################################################
 #CodeSys:
 #  type: plc
+#  timeStepPerCycle: 0.01
 #  host: localhost
 #  port: '4840'
 #  finishedNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.calculationFinished
@@ -111,7 +118,6 @@ Logger:
 # of outputVars. Any inputVar and/or outputVar should only be used once in the mapping section.                                                                                        #
 ########################################################################################################################################################################################
 Mapping:
-  timeStepPerCycle: 0.01
   preStepMappings:
     scen_u: 
     - fmu_u
