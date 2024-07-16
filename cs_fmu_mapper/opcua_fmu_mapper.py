@@ -1,5 +1,6 @@
-from cs_fmu_mapper.components.master_component import MasterComponent
 import logging
+
+from cs_fmu_mapper.components.master_component import MasterComponent
 
 
 class OPCUAFMUMapper:
@@ -95,9 +96,9 @@ class OPCUAFMUMapper:
 
     async def initialize(self):
         """Initailizes the simulation and all components."""
-        self._log.info("Finalizing simulation...")
+        self._log.info("Initializing simulation...")
         for component in self._components.values():
             if component != self._master:
                 await component.initialize()
-        self._log.info("Simulation finished.")
+        self._log.info("Simulation initialized.")
         return True
