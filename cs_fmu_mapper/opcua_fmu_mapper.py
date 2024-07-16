@@ -39,7 +39,20 @@ class OPCUAFMUMapper:
         )
 
     def all_components_finished(self):
+        """Returns True if all components are finished."""
         return all(list(map(lambda x: x.is_finished(), self._components.values())))
+
+    def perform_mapping(self, maps: dict):
+        """Maps the output values of the source component to the input values of the destination component.
+        Args:
+            map (dict): A dict which contains the mappings between the output values of the source component and the input values of the destination component.
+        """
+        for source, destinations in maps.items():
+            source_component = self._name_component_map[source]
+            value = source_component.get_output_value(source)
+            for destination in destinations:
+                dest_component = self._name_component_map[destination]
+                dest_component.set_input_value(destination, value)
 
     async def do_step(self, t, dt):
         """Writes input values into Simulation, steps the simulation and reads the outputs of the simulation after the step is finished.
@@ -52,30 +65,19 @@ class OPCUAFMUMapper:
             dict: A dict which maps the nodeIDs of the PLCs input variables onto the corresponding output values of the FMU after the simulation step is finished.
         """
 
-        for source, destinations in self._pre_step_maps.items():
-            source_component = self._name_component_map[source]
-            value = source_component.get_output_value(source)
-            for destination in destinations:
-                dest_component = self._name_component_map[destination]
-                dest_component.set_input_value(destination, value)
+        # map pre step values
+        self.perform_mapping(maps=self._pre_step_maps)
 
         # step all compoments which are not a plc and have a do_step method
         for component in self._components.values():
             if component != self._master:
                 await component.do_step(t, dt)
 
-        for source, destinations in self._post_step_maps.items():
-            source_component = self._name_component_map[source]
-            value = source_component.get_output_value(source)
-            for destination in destinations:
-                dest_component = self._name_component_map[destination]
-                dest_component.set_input_value(destination, value)
+        # map post step values
+        self.perform_mapping(maps=self._post_step_maps)
 
-        # notify plc if scenarios are finished
-        components_finished = list(
-            map(lambda x: x.is_finished(), self._components.values())
-        )
-        if all(components_finished):
+        # notify master if scenarios are finished
+        if self.all_components_finished():
             for component in self._components.values():
                 component.notify_simulation_finished()
 

@@ -57,6 +57,10 @@ Filter:
 # 't' for time data and at least one more data column.                                                                                                                               #
 ######################################################################################################################################################################################
 Scenario:
+  ###### For simulation with just time steps ######
+  justTimeSeries: false      #optional, true if only time series data is available
+  simulationTime: 86400      #optional, time in seconds for how long the scenario should be simulated, only necessary if justTimeSeries is set to true
+  ###### For scenario with timetable data ######
   type: scenario
   path:  example/scenario/
   outputVar:

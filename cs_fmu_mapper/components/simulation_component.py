@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 
 class SimulationComponent(ABC):
@@ -7,18 +7,21 @@ class SimulationComponent(ABC):
     @classmethod
     def get_subclasses(cls):
         for subclass in cls.__subclasses__():
-            yield from subclass.get_subclasses()
-            yield subclass
+            if not subclass.__module__.startswith("cs_fmu_mapper.components"):
+                pass
+            else:
+                yield from subclass.get_subclasses()
+                yield subclass
 
     def __init__(self, config, name):
         self._log = logging.getLogger(self.__class__.__name__)
         self._log.info("Initializing " + str(self.__class__.__name__) + ".")
-        self._config = config
-        self._name = name
-        self._is_finished = True
+        self._config: dict = config
+        self._name: str = name
+        self._is_finished: bool = True
 
-        self._input_values = None
-        self._output_values = None
+        self._input_values: dict[str, float] = {}
+        self._output_values: dict[str, float] = {}
 
         if "inputVar" in self._config.keys():
             self._init_input_values()
