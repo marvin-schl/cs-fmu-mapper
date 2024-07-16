@@ -1,10 +1,9 @@
-import logging
-import os
-
 import pandas as pd
-from cs_fmu_mapper.components.simulation_component import SimulationComponent
-from cs_fmu_mapper.utils import chooseFile
 from tqdm import tqdm
+import os
+from cs_fmu_mapper.utils import chooseFile
+import logging
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 
 
 class Scenario(SimulationComponent):
@@ -13,28 +12,22 @@ class Scenario(SimulationComponent):
 
     def __init__(self, config, name):
         super(Scenario, self).__init__(config, name)
-        self._just_time_series = config["justTimeSeries"]
-        if self._just_time_series:
-            self._final_time = config["simulationTime"]
+        self._log.info("Using Scneario path: " + config["path"])
+        if os.path.exists(config["path"]):
+            if os.path.isfile(config["path"]):
+                self._scenario = pd.read_csv(config["path"], delimiter=";")
+            elif os.path.isdir(config["path"]):
+                file = chooseFile(
+                    config["path"],
+                    "Scenario path is a directory. Please choose a Scenraio file:",
+                )
+                self._scenario = pd.read_csv(config["path"] + "/" + file, delimiter=";")
         else:
-            self._log.info("Using Scneario path: " + config["path"])
-            if os.path.exists(config["path"]):
-                if os.path.isfile(config["path"]):
-                    self._scenario = pd.read_csv(config["path"], delimiter=";")
-                elif os.path.isdir(config["path"]):
-                    file = chooseFile(
-                        config["path"],
-                        "Scenario path is a directory. Please choose a Scenraio file:",
-                    )
-                    self._scenario = pd.read_csv(
-                        config["path"] + "/" + file, delimiter=";"
-                    )
-            else:
-                raise FileNotFoundError("Scenario file not found at: " + config["path"])
-            self._final_time = self._scenario.sort_values(by="t", ascending=False).iloc[
-                0
-            ]["t"]
+            raise FileNotFoundError("Scenario file not found at: " + config["path"])
         self._finished = False
+        self._final_time = self._scenario.sort_values(by="t", ascending=False).iloc[0][
+            "t"
+        ]
         self._pbar = tqdm(
             total=self._final_time,
             unit="s",
@@ -55,13 +48,6 @@ class Scenario(SimulationComponent):
         if self._pbar_update_counter == int(1 / dt):
             self._pbar.update(1)
             self._pbar_update_counter = 0
-
-        if self._just_time_series:
-            if t >= self._final_time:
-                self._finished = True
-                self._pbar.close()
-                self._log.info("Scenario finished at " + str(t) + "s.")
-            return
         try:
             cur_val = (
                 self._scenario[self._scenario["t"] >= t]
@@ -83,7 +69,7 @@ class Scenario(SimulationComponent):
             print(e)
             self._finished = True
             self._pbar.close()
-            self._log.info("Scenario finished at " + str(t) + "s.")
+            self._log.info("Scenario finished at t=" + str(t))
 
     async def finalize(self):
         return True
