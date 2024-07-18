@@ -73,7 +73,7 @@ Logger:
   type: logger
   path: example/results/
   usetex: false                 #optional, true for use of Latex renderer
-  fontafamily: sans-serif       #optional, serif for latex style font
+  fontfamily: sans-serif       #optional, serif for latex style font
   inputVar:
     log_y:
       init: 0
