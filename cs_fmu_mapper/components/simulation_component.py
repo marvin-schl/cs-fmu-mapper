@@ -18,7 +18,7 @@ class SimulationComponent(ABC):
         self._log.info("Initializing " + str(self.__class__.__name__) + ".")
         self._config: dict = config
         self._name: str = name
-        self._is_finished: bool = False
+        self._is_finished: bool = True
 
         self._input_values: dict[str, float] = {}
         self._output_values: dict[str, float] = {}
