@@ -1,4 +1,6 @@
 # from components.simulation_component import SimulationComponent
+import logging
+
 from cs_fmu_mapper.components import *
 from cs_fmu_mapper.opcua_fmu_mapper import OPCUAFMUMapper
 
@@ -9,6 +11,7 @@ class ComponentFactory:
     def __init__(self) -> None:
         self._components = []
         self._plc_component = None
+        self._log = logging.getLogger(self.__class__.__name__)
 
     def createComponents(
         self, config: dict, custom_components: dict[str, str] = {}
@@ -30,7 +33,7 @@ class ComponentFactory:
         classes = list(SimulationComponent.get_subclasses())
         master_classes = list(MasterComponent.get_subclasses())
 
-        print("Master classes: ", master_classes)
+        self._log.debug("Master classes: " + str(master_classes))
 
         component_classes = {c.type: c for c in classes}
         # Import custom components
@@ -47,9 +50,11 @@ class ComponentFactory:
                     component_classes[component_class.type] = component_class
 
                 except Exception as e:
-                    print(f"Error importing component {component_class_name}: {e}")
+                    self._log.error(
+                        f"Error importing component {component_class_name}: {e}"
+                    )
 
-        print(list(component_classes.keys()))
+        self._log.debug(list(component_classes.keys()))
 
         componentConfig = config.copy()
         del componentConfig["Mapping"]
