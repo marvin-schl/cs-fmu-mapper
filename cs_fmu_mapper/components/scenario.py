@@ -28,27 +28,7 @@ class Scenario(SimulationComponent):
         self._final_time = int(
             self._scenario.sort_values(by="t", ascending=False).iloc[0]["t"]
         )
-        # Progress bar
-        self._pbar = None
-        self._pbar_update_counter = 0
 
-    def create_progress_bar(self):
-        self._pbar = tqdm(
-            total=self._final_time,
-            unit="s",
-            bar_format="{l_bar}{bar}| {n_fmt}{unit}/{total_fmt}{unit} [{elapsed}<{remaining}]",
-            dynamic_ncols=True,
-            colour="green",
-        )
-
-    def update_progress_bar(self, dt):
-        if dt >= 1:
-            self._pbar.update(dt)
-        else:
-            self._pbar_update_counter += 1
-            if self._pbar_update_counter == int(1 / dt):
-                self._pbar.update(1)
-                self._pbar_update_counter = 0
 
     def set_input_values(self, new_val):
         raise NotImplementedError("Scenario does not provide input values.")
@@ -62,7 +42,7 @@ class Scenario(SimulationComponent):
         if self._is_finished:
             return
         if self._pbar is None:
-            self.create_progress_bar()
+            self.create_progress_bar(self._final_time, "blue", "Scenario")
         self.update_progress_bar(dt)
         try:
             cur_val = (
