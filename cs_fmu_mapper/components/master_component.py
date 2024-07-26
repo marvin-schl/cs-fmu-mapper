@@ -1,5 +1,6 @@
-from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from abc import ABC, abstractmethod
+
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 
 
 class MasterComponent(SimulationComponent):
@@ -20,14 +21,17 @@ class MasterComponent(SimulationComponent):
         pass
 
     async def do_step(self, t, dt):
-        await self._mapper.do_step(self._t, self._timestep_per_cycle)
+        if self._mapper is not None:
+            await self._mapper.do_step(self._t, self._timestep_per_cycle)
         self._t = self._t + self._timestep_per_cycle
 
     async def finalize(self):
-        await self._mapper.finalize()
+        if self._mapper is not None:
+            await self._mapper.finalize()
 
     def get_time(self):
         return self._t
 
     async def initialize(self):
-        await self._mapper.initialize()
+        if self._mapper is not None:
+            await self._mapper.initialize()
