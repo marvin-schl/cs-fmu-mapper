@@ -60,7 +60,7 @@ logger.info("Creating PLCClient, FMU Simualation and Mapper Instance...")
 plcclient, component_list = ComponentFactory().createComponents(config)
 
 if plcclient:
-    # setup an sil simulation with plc as simulation master
+    # setup a SIL simulation with PLC as simulation master
     mapper = OPCUAFMUMapper(
         config=config["Mapping"], plc_client=plcclient, mappables=component_list
     )
