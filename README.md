@@ -1,5 +1,5 @@
 # CS-FMU-Mapper
-
+A mapping and plotting tool for Co-simulation with FMU binary modells and PLCs using an OPC UA interface.
 ## Installation
 
 ```bash
@@ -15,8 +15,9 @@
     - activates the cs-fmu-mapper conda environment, making it the current working environment
     - installs the pyfmi package from the conda-forge channel into the currently active conda environment
     - uses pip to install the Python packages listed in the requirements.txt file into the currently active conda environment
-</details>
 
+read the documentation of [PyFMI](https://jmodelica.org/pyfmi/).
+</details>
 
 ## Executing Example
 
@@ -32,7 +33,7 @@ The configuration basically defines simulation components of type `plc`, `fmu`, 
 
 Besides the component configuration, there is a `Mapping` section where the Mapping from `outputVar`s to `inputVar`s is configured. For a detailed explanation see the example config. The simulation will be performed in steps. If a mapping is configured as `preStepMapping` the mapping will be done before simulation step execution. Consequently, when a mapping is configured as `postStepMapping` the mapping will be done afterwards.
 
-If there is a `plc` component configured the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that the simulation is finished. In standalone mode, the simulation will then finalize itself. In `plc` master mode the `plc` should react accordingly and should initiate the termination of the program.
+If there is a `plc` component configured, the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that the simulation is finished. In standalone mode, the simulation will then finalize itself. In `plc` master mode the `plc` should react accordingly and should initiate the termination of the program.
 
 ## Usage
 
