@@ -8,6 +8,15 @@
     > $ conda install -c conda-forge pyfmi
     > $ pip3 install -r requirements.txt
 ```
+<details>
+    <summary>Click to explain!</summary>
+    
+    - creates a new conda environment named cs-fmu-mapper with Python version 3.10; both -n, --name will be accepted
+    - activates the cs-fmu-mapper conda environment, making it the current working environment
+    - installs the pyfmi package from the conda-forge channel into the currently active conda environment
+    - uses pip to install the Python packages listed in the requirements.txt file into the currently active conda environment
+</details>
+
 
 ## Executing Example
 
