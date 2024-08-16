@@ -35,10 +35,15 @@ class ComponentFactory:
 
         self._log.debug("Master classes: " + str(master_classes))
 
-        component_classes = {c.type: c for c in classes}
+        component_classes = {c.type: (c, None) for c in classes}
         # Import custom components
         if custom_components:
-            for component_class_name, component_path in custom_components.items():
+            for component_class_name, component_info in custom_components.items():
+                assert isinstance(
+                    component_info, tuple
+                ), "Custom components must be defined as a dictionary with the class name as key and a tuple with the path to the component and the input parameters (dict) as value."
+                component_path = component_info[0]
+                component_input = component_info[1]
                 try:
                     # Add the custom component to the component_classes dictionary if it is a subclass of SimulationComponent
                     exec(f"from {component_path} import {component_class_name}")
@@ -47,7 +52,10 @@ class ComponentFactory:
                         raise Exception(
                             f"Component {component_class_name} is not a subclass of SimulationComponent."
                         )
-                    component_classes[component_class.type] = component_class
+                    component_classes[component_class.type] = (
+                        component_class,
+                        component_input,
+                    )
 
                 except Exception as e:
                     self._log.error(
@@ -62,8 +70,12 @@ class ComponentFactory:
         for name in componentConfig.keys():
             type = componentConfig[name]["type"]
             try:
-                cls = component_classes[type]
-                component_instance = cls(componentConfig[name], name)
+                cls, component_input = component_classes[type]
+                component_instance = cls(
+                    componentConfig[name],
+                    name,
+                    **component_input if component_input else {},
+                )
                 self._components.append(component_instance)
                 if cls in master_classes and self._master_component is None:
                     self._master_component = component_instance
