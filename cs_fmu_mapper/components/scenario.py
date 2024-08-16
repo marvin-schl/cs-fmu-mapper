@@ -15,20 +15,20 @@ class Scenario(SimulationComponent):
         self._log.info("Using Scenario path: " + config["path"])
         if os.path.exists(config["path"]):
             if os.path.isfile(config["path"]):
-                self._scenario = pd.read_csv(config["path"], delimiter=";")
+                self._scenario = pd.read_csv(config["path"])
             elif os.path.isdir(config["path"]):
                 file = chooseFile(
                     config["path"],
                     "Scenario path is a directory. Please choose a Scenraio file:",
                 )
-                self._scenario = pd.read_csv(config["path"] + "/" + file, delimiter=";")
+                self._scenario = pd.read_csv(config["path"] + "/" + file)
         else:
             raise FileNotFoundError("Scenario file not found at: " + config["path"])
+        assert "t" in self._scenario.columns, "Scenario file must contain a column 't'."
         self._is_finished = False
         self._final_time = int(
             self._scenario.sort_values(by="t", ascending=False).iloc[0]["t"]
         )
-
 
     def set_input_values(self, new_val):
         raise NotImplementedError("Scenario does not provide input values.")
