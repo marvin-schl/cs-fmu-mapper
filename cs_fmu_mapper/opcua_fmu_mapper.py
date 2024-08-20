@@ -71,13 +71,14 @@ class OPCUAFMUMapper:
                 dest_component = self._name_component_map[destination]
                 dest_component.set_input_value(destination, value)
 
-        # notify plc if scenarios are finished
-        components_finished = list(
-            map(lambda x: x.is_finished(), self._components.values())
-        )
-        if all(components_finished):
-            for component in self._components.values():
-                component.notify_simulation_finished()
+    #        # notify plc if scenarios are finished
+    #        components_finished = list(
+    #            map(lambda x: x.is_finished(), self._components.values())
+    #        )
+
+    # if all(components_finished):
+    #     for component in self._components.values():
+    #         component.notify_simulation_finished()
 
     def fmu_log_callback_wrapper(self, module, level, message):
         self._log.info(message)
@@ -93,9 +94,9 @@ class OPCUAFMUMapper:
 
     async def initialize(self):
         """Initailizes the simulation and all components."""
-        self._log.info("Finalizing simulation...")
+        self._log.info("Initializing simulation...")
         for component in self._components.values():
             if component != self._master:
                 await component.initialize()
-        self._log.info("Simulation finished.")
+        self._log.info("Simulation initialized.")
         return True

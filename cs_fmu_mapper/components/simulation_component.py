@@ -120,9 +120,6 @@ class SimulationComponent(ABC):
     def set_is_finished(self, val):
         self._is_finished = val
 
-    def notify_simulation_finished(self):
-        pass
-
     def log_info(self, msg):
         self._log.info(msg)
 

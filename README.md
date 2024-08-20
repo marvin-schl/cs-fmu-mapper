@@ -104,4 +104,8 @@ For logging purposes, these three methods can be used:
 - [x] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. This method should be called in the main loop of the program.
     => initialize method added in Simulation Component is called by mapper before first do_step() 
 - [ ] Make sure that AbstractOPCUA client uses its own logger and not the SimulationComponent logger
-- [ ] Add comments to methods
+- [ ] Add code comments
+- [-] Test MasterComponent Class
+  - [x] Standalone Case
+  - [ ] PLC synchronized Case 
+- [ ] Update README and example regarding added MasterComponent class 
