@@ -8,9 +8,9 @@ class OPCUAFMUMapper:
     def __init__(self, master: MasterComponent = None, component_list=[], config=None):
         """Returns an Instance of a OPCUAFMUMapper. This class is mapping the configure input and output values between different Simulation Components."""
 
-        self._log = logging.getLogger("OPCUAMapper")
+        self._log = logging.getLogger("OPCUAFMUMapper")
 
-        self._log.info("Initiliazing OPCUA Mapper...")
+        self._log.info("Initiliazing OPCUAFMUMapper...")
         self._master = master
         self._config = config
 
