@@ -21,11 +21,15 @@ class Scenario(SimulationComponent):
                     config["path"],
                     "Scenario path is a directory. Please choose a Scenraio file:",
                 )
-                self._scenario = pd.read_csv(config["path"] + "/" + file)
+                self._scenario = pd.read_csv(
+                    os.path.join(config["path"], file), delimiter=";"
+                )
         else:
             raise FileNotFoundError("Scenario file not found at: " + config["path"])
-        assert "t" in self._scenario.columns, "Scenario file must contain a column 't'."
-
+        assert (
+            "t" in self._scenario.columns
+        ), f"Scenario file must contain a column 't'. Columns found: {str(
+            self._scenario.columns)}. Make sure to use semicolon as delimiter."
         self._is_finished = False
         self._progress = 0
         self._final_time = int(
