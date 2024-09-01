@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
@@ -61,8 +62,8 @@ class Logger(SimulationComponent):
                     self.generate_time_series_plot(plot)
 
         df = pd.DataFrame(self._data)
-        self._log.info("Saving data to: " + self._config["path"] + "\data.csv")
-        df.to_csv(self._config["path"] + "\data.csv", sep=";", index=False)
+        self._log.info("Saving data to: " + os.path.join(self._config["path"],"data.csv"))
+        df.to_csv(os.path.join(self._config["path"],"data.csv"), sep=";", index=False)
         self._log.info("Logger finalized.")
         return True
 
@@ -90,8 +91,11 @@ class Logger(SimulationComponent):
             ax.grid(
                 which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75
             )
-        fig.savefig(self._config["path"] + "\\" + name + ".pgf")
-        fig.savefig(self._config["path"] + "\\" + name + ".png")
+        try:
+            fig.savefig(os.path.join(self._config["path"],name + ".pgf"))
+        except Exception as e:
+            self._log.debug(f"Error saving pgf: {e}")
+        fig.savefig(os.path.join(self._config["path"],name + ".png"))
         plt.close(fig)
 
     def generate_scatter_plot(self, name):
@@ -118,6 +122,9 @@ class Logger(SimulationComponent):
             ax.grid(
                 which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.75
             )
-        fig.savefig(self._config["path"] + "\\" + name + ".pgf")
-        fig.savefig(self._config["path"] + "\\" + name + ".png")
+        try:
+            fig.savefig(os.path.join(self._config["path"], name + ".pgf"))
+        except Exception as e:
+            self._log.debug(f"Error saving pgf: {e}")
+        fig.savefig(os.path.join(self._config["path"], name + ".png"))
         plt.close(fig)
