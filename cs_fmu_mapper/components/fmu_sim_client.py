@@ -6,8 +6,9 @@ import numpy as np
 import pyfmi.fmi as fmi
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from cs_fmu_mapper.utils import chooseFile
-from fmpy import extract, read_model_description
 from fmpy.fmi2 import FMU2Slave
+from fmpy.fmi3 import FMU3Slave
+from fmpy import extract, read_model_description
 from pyfmi import load_fmu
 from pyfmi.master import Master
 
@@ -39,9 +40,10 @@ class FMUSimClient(SimulationComponent):
                 path = config["path"] + "/" + file
         else:
             raise FileNotFoundError("FMU not found at: " + config["path"])
+        self._fmi_version = ""
         self._model = self._load_model(path)
 
-        self._log.info("Loaded FMU successfully.")
+        self._log.info(f"Loaded FMU of version {self._fmi_version} successfully.")
         self._step_size = config["stepSize"]
         # self._steps_per_cycle = config["numberOfStepsPerCycle"]
 
@@ -115,34 +117,56 @@ class FMPySimClient(FMUSimClient):
         self._log.info("Using FMPy as FMU Backend")
         # read model description
         model_description = read_model_description(path)
+        if model_description.fmiVersion == "2.0":
+            self._fmi_version = "2.0"
+        elif model_description.fmiVersion == "3.0":
+            self._fmi_version = "3.0"
+        else:
+            raise ValueError(f"Unsupported FMI version: {model_description.fmiVersion}")
         # collect the value references
         self._vrs = {}
         for variable in model_description.modelVariables:
             self._vrs[variable.name] = variable.valueReference
         # extract the FMU
         unzipdir = extract(path)
-        return FMU2Slave(
-            guid=model_description.guid,
-            unzipDirectory=unzipdir,
-            modelIdentifier=model_description.coSimulation.modelIdentifier,
-            instanceName="instance1",
-        )
+
+        if self._fmi_version == "2.0":
+            return FMU2Slave(
+                guid=model_description.guid,
+                unzipDirectory=unzipdir,
+                modelIdentifier=model_description.coSimulation.modelIdentifier,
+                instanceName="instance1",
+            )
+        elif self._fmi_version == "3.0":
+            return FMU3Slave(
+                guid=model_description.guid,
+                unzipDirectory=unzipdir,
+                modelIdentifier=model_description.coSimulation.modelIdentifier,
+                instanceName="instance1",
+            )
 
     def _init_model(self):
         self._time = 0
         # initialize
         self._model.instantiate()
-        self._model.setupExperiment(startTime=self._time)
+        if self._fmi_version == "2.0":
+            self._model.setupExperiment(startTime=self._time)
         self._model.enterInitializationMode()
         self._model.exitInitializationMode()
 
     def _set_input_values(self):
         for key, val in self.get_input_values().items():
-            self._model.setReal([self._vrs[self.get_node_by_name(key)]], [val])
+            if self._fmi_version == "2.0":
+                self._model.setReal([self._vrs[self.get_node_by_name(key)]], [val])
+            elif self._fmi_version == "3.0":
+                self._model.setFloat64([self._vrs[self.get_node_by_name(key)]], [val])
 
     def _read_output_values(self):
         for key in self.get_output_values().keys():
-            val = self._model.getReal([self._vrs[self.get_node_by_name(key)]])
+            if self._fmi_version == "2.0":
+                val = self._model.getReal([self._vrs[self.get_node_by_name(key)]])
+            elif self._fmi_version == "3.0":
+                val = self._model.getFloat64([self._vrs[self.get_node_by_name(key)]])
             self.set_output_value(key, val[0])
 
     def _call_fmu_step(self, t, dt):
@@ -159,7 +183,7 @@ class PyFMISimClient(FMUSimClient):
 
         if type(model) != fmi.FMUModelCS2:
             raise TypeError("FMU Model has to be defined as Co-Simulated Model.")
-
+        self._fmi_version = "2.0"
         return model
 
     def fmu_log_callback_wrapper(self, module, level, message):
