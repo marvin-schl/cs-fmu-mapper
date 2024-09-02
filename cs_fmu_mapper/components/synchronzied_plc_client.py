@@ -11,15 +11,16 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
 
     def __init__(self, config, name) -> None:
         AbstractOPCUAClient.__init__(self, config, name)
-        SimulationComponent.__init__(self, config, name)
+        MasterComponent.__init__(self, config, name)
         self._stepNode = None
         self._finishedNode = None
         self._simulationFinishedNode = None
-
         self._simulationFinished = False
         self._stepNodeVal = False
         self._start_time = 0
-
+        self._run_infinite = False
+        if "runInfinite" in config:
+            self._run_infinite = config["runInfinite"]
         self._k = 0
         self._n = 0
         self._s1 = 0
@@ -37,6 +38,9 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
         )
         self._mapper.init_node_maps()
 
+    async def run(self):
+        await super().start()
+
     async def _run(self):
         await super().initialize()
         while self._running:
@@ -48,7 +52,7 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
                 await self.do_step()
             self._stepNodeVal = curStepNodeVal
 
-            if self._simulationFinished:
+            if self._mapper.all_components_finished() and not self._run_infinite:
                 await self._simulationFinishedNode.write_value(
                     True, VariantType.Boolean
                 )
@@ -59,7 +63,7 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
             output_node = self._nodes[output]
             self.set_output_value(output, await output_node.read_value())
 
-        await super.do_step(None, None)
+        await super().do_step(None, None)
 
         for input in self.get_input_values().keys():
             input_node = self._nodes[input]
@@ -69,9 +73,6 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
         await self._finishedNode.write_value(True, VariantType.Boolean)
         self._calculate_periodtime_stats()
         self._exec_time = (time.time_ns() - self._start_time) / 1000000
-
-    def notify_simulation_finished(self):
-        self._simulationFinished = True
 
     def _calculate_periodtime_stats(self):
         self._exec_times = np.append(self._exec_times, [self._exec_time])

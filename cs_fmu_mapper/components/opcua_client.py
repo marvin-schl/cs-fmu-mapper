@@ -64,8 +64,8 @@ class AbstractOPCUAClient(ABC):
             self._nodes[out_var] = output_node
             self._output_values[out_var] = self._config["outputVar"][out_var]["init"]
 
-    async def run(self) -> None:
-        """Connects client, invokes node initialization and delegates normal client operation to client specific _run() method. Disconnects and finalizes on asyncio.CancelledError."""
+    async def start(self) -> None:
+        """Connects client, invokes node initialization and delegates normal client operation to client specific simulate() method. Disconnects and finalizes on asyncio.CancelledError."""
         await self._connect()
 
         if not self._nodes:
@@ -77,7 +77,7 @@ class AbstractOPCUAClient(ABC):
             await self._run()
         except (asyncio.CancelledError, KeyboardInterrupt):
             self._log.info("Canceling OPCUA Client...")
-            await self._finalize()
+            await self.finalize()
         await self._disconnect()
         self._log.info("OPCUA Client has been cancelled.")
 

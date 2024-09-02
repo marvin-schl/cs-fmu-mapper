@@ -77,10 +77,14 @@ class OPCUAFMUMapper:
         # map post step values
         self.perform_mapping(maps=self._post_step_maps)
 
-        # notify master if scenarios are finished
-        if self.all_components_finished():
-            for component in self._components.values():
-                component.notify_simulation_finished()
+    #        # notify plc if scenarios are finished
+    #        components_finished = list(
+    #            map(lambda x: x.is_finished(), self._components.values())
+    #        )
+
+    # if all(components_finished):
+    #     for component in self._components.values():
+    #         component.notify_simulation_finished()
 
     def fmu_log_callback_wrapper(self, module, level, message):
         self._log.info(message)

@@ -1,5 +1,5 @@
 # CS-FMU-Mapper
-
+A mapping and plotting tool for Co-simulation with FMU binary modells and PLCs using an OPC UA interface.
 ## Installation
 
 ```bash
@@ -8,6 +8,16 @@
     > $ conda install -c conda-forge pyfmi
     > $ pip3 install -r requirements.txt
 ```
+<details>
+    <summary>Click to explain!</summary>
+    
+    - creates a new conda environment named cs-fmu-mapper with Python version 3.10; both -n, --name will be accepted
+    - activates the cs-fmu-mapper conda environment, making it the current working environment
+    - installs the pyfmi package from the conda-forge channel into the currently active conda environment
+    - uses pip to install the Python packages listed in the requirements.txt file into the currently active conda environment
+
+read the documentation of [PyFMI](https://jmodelica.org/pyfmi/).
+</details>
 
 This repository can be installed as a package via pip. The package has not yet been uploaded to PyPI. Therefore, the package has to be installed locally. By cloning the repository and executing the following command in the root directory of the repository the package will be installed. All dependencies will be installed automatically but note that pyfmi has to be installed manually as it cannot be installed via pip.
 
@@ -29,7 +39,7 @@ The configuration basically defines simulation components of type `plc`, `fmu`, 
 
 Besides the component configuration, there is a `Mapping` section where the Mapping from `outputVar`s to `inputVar`s is configured. For a detailed explanation see the example config. The simulation will be performed in steps. If a mapping is configured as `preStepMapping` the mapping will be done before simulation step execution. Consequently, when a mapping is configured as `postStepMapping` the mapping will be done afterwards.
 
-If there is a `plc` component configured the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that the simulation is finished. In standalone mode, the simulation will then finalize itself. In `plc` master mode the `plc` should react accordingly and should initiate the termination of the program.
+If there is a `plc` component configured, the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that the simulation is finished. In standalone mode, the simulation will then finalize itself. In `plc` master mode the `plc` should react accordingly and should initiate the termination of the program.
 
 ## Usage
 
@@ -94,6 +104,10 @@ For logging purposes, these three methods can be used:
     def log_debug(self, msg)
     def log_warning(self, msg)
 ```
+## Class Diagram
+
+![Class Diagram](img/class_diagram_cs_mapper.jpg)
+
 
 ## Known Issues
 
@@ -104,4 +118,8 @@ For logging purposes, these three methods can be used:
 - [x] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. This method should be called in the main loop of the program.
     => initialize method added in Simulation Component is called by mapper before first do_step() 
 - [ ] Make sure that AbstractOPCUA client uses its own logger and not the SimulationComponent logger
-- [ ] Add comments to methods
+- [ ] Add code comments
+- [-] Test MasterComponent Class
+  - [x] Standalone Case
+  - [ ] PLC synchronized Case 
+- [ ] Update README and example regarding added MasterComponent class 

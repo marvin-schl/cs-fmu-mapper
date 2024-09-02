@@ -131,25 +131,6 @@ class SimulationComponent(ABC):
     def notify_simulation_finished(self):
         pass
 
-    def create_progress_bar(self, final_time, color, desc):
-        self._pbar = tqdm(
-            total=final_time,
-            unit="s",
-            bar_format="{l_bar}{bar}| {n_fmt}{unit}/{total_fmt}{unit} [{elapsed}<{remaining}]",
-            dynamic_ncols=True,
-            colour=color,
-            desc=desc,
-        )
-
-    def update_progress_bar(self, dt):
-        if dt >= 1:
-            self._pbar.update(dt)
-        else:
-            self._pbar_update_counter += 1
-            if self._pbar_update_counter == int(1 / dt):
-                self._pbar.update(1)
-                self._pbar_update_counter = 0
-
     def log_info(self, msg):
         self._log.info(msg)
 
