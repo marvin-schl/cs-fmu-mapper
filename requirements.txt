@@ -1,9 +1,9 @@
-asyncua==1.1.0
-FMPy==0.3.20
-inquirer==3.2.4
-matplotlib==3.8.4
-numpy==1.26.4
-pandas==2.2.2
+asyncua
+FMPy
+inquirer
+matplotlib
+numpy
+pandas
 # PyFMI==2.11.0 -> Installation only via conda possible 
-PyYAML==6.0.1
-tqdm==4.66.2
+PyYAML
+tqdm
