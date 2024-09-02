@@ -17,6 +17,9 @@ Filter:
     fmu_y:
       init: 0
       nodeID: y
+    fmu_y2:
+      init: 0
+      nodeID: y2
 
 ######################################################################################################################################################################################
 # The Mapping could also be configured betweem a PLC and a FMU. The following code snippet shows an example of how to configure the mapping between a FMU and a PLC.                #
@@ -78,8 +81,8 @@ Logger:
     step_response:
       type: time_series
       title: Filter Step Response
-      subgrid: true              #optional
-      grid: true  	             #optional
+      subgrid: true #optional
+      grid: true #optional
       vars:
       - log_u
       - log_y

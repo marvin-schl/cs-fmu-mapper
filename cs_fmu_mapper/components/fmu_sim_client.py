@@ -5,10 +5,10 @@ import numpy as np
 import logging
 from abc import abstractmethod, ABC
 import os
-from utils import chooseFile
+from cs_fmu_mapper.utils import chooseFile
 from fmpy.fmi2 import FMU2Slave
 from fmpy import extract, read_model_description
-from components.simulation_component import SimulationComponent
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 
 
 class FMUSimClient(SimulationComponent):
@@ -66,7 +66,7 @@ class FMUSimClient(SimulationComponent):
     def _call_fmu_step(self):
         pass
 
-    def do_step(self, t: float, dt: float):
+    async def do_step(self, t: float, dt: float):
         """Triggers the configured amount of steps per cycle each
 
         Args:

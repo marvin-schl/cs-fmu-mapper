@@ -1,5 +1,5 @@
 import asyncio
-from components.simulation_component import SimulationComponent
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 import asyncua.common
 
 
@@ -191,7 +191,7 @@ class ExternalOPCUAClient(SimulationComponent):
             await run_node.write_value(True, asyncua.ua.uatypes.VariantType.Boolean)
         except (asyncio.CancelledError, KeyboardInterrupt):
             self._log.info("Canceling OPCUA Client...")
-            await self._finalize()
+            await self.finalize()
         await self._disconnect()
         self._log.info("OPCUA Client has been cancelled.")
 
@@ -333,6 +333,10 @@ class ExternalOPCUAClient(SimulationComponent):
                 f"Read value '{val}' from node '{node_name}' with node id '{self._names_id_map[node_name]}'"
             )
 
-    async def _finalize(self):
+    async def finalize(self):
         """Invoked after asnycua.Cancelled error is catched. Overwrite by child for client specific finalization tasks."""
         pass
+
+    async def initialize(self):
+        """Invoked by mapper instance before first do_step call."""
+        await self.connect()

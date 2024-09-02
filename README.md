@@ -19,6 +19,12 @@ A mapping and plotting tool for Co-simulation with FMU binary modells and PLCs u
 read the documentation of [PyFMI](https://jmodelica.org/pyfmi/).
 </details>
 
+This repository can be installed as a package via pip. The package has not yet been uploaded to PyPI. Therefore, the package has to be installed locally. By cloning the repository and executing the following command in the root directory of the repository the package will be installed. All dependencies will be installed automatically but note that pyfmi has to be installed manually as it cannot be installed via pip.
+
+```bash
+    > $ pip install .
+```
+
 ## Executing Example
 
 ```bash
@@ -107,6 +113,13 @@ For logging purposes, these three methods can be used:
 
 ## TODOs
 
-- [ ] Make do_step() method async
-- [ ] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. This method should be called in the main loop of the program.
+- [x] Make do_step() method async 
+  - [ ] to be tested
+- [x] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. This method should be called in the main loop of the program.
+    => initialize method added in Simulation Component is called by mapper before first do_step() 
 - [ ] Make sure that AbstractOPCUA client uses its own logger and not the SimulationComponent logger
+- [ ] Add code comments
+- [-] Test MasterComponent Class
+  - [x] Standalone Case
+  - [ ] PLC synchronized Case 
+- [ ] Update README and example regarding added MasterComponent class 
