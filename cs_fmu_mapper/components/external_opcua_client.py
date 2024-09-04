@@ -1,13 +1,14 @@
 import asyncio
-from cs_fmu_mapper.components.simulation_component import SimulationComponent
+
 import asyncua.common
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 
 
 class ExternalOPCUAClient(SimulationComponent):
     type = "external_opcua_client"
 
     def __init__(
-        self, config: dict, name: str, stop_time: int, lock: asyncio.Lock = None
+        self, config: dict, name: str, lock: asyncio.Lock | None = None
     ) -> None:
         """This Class implements a basic abstract OPCUA Client that allows to connect to an external OPCUA client.
 
@@ -19,15 +20,22 @@ class ExternalOPCUAClient(SimulationComponent):
         super(ExternalOPCUAClient, self).__init__(config, name)
         self._host = config["host"]
         self._port = config["port"]
-        self._steps_per_cycle = config["numberOfStepsPerCycle"]
         self._step_node_name = config["stepNodeName"]
         self._terminate_node_name = config["terminateNodeName"]
         self._run_node_name = config["runNodeName"]
         self._enable_stop_time_node_name = config["enableStopTimeNodeName"]
         self._time_node_name = config["timeNodeName"]
         self._step_size = config["stepSize"]
-        self._stop_time = stop_time
-        self._connection: asyncua.Client = None
+        self._enable_stop_time = (
+            config["enableStopTime"] if "enableStopTime" in config else True
+        )
+        self._max_connect_retries = (
+            config["maxConnectRetries"] if "maxConnectRetries" in config else 8
+        )
+        self._connect_timeout = (
+            config["connectRetryInterval"] if "connectRetryInterval" in config else 10
+        )
+        self._connection: asyncua.Client | None = None
         self._nodes = {}
         self._running = False
         self._lock = lock
@@ -49,7 +57,22 @@ class ExternalOPCUAClient(SimulationComponent):
             self._connection = asyncua.Client(
                 url="opc.tcp://" + self._host + ":" + self._port + "/"
             )
-            await self._connection.connect()
+            _retries = 0
+            while not self.is_connected() and _retries < self._max_connect_retries:
+                try:
+                    if _retries > 0:
+                        self._log.info(
+                            f"Retrying connection... ({_retries}/{self._max_connect_retries})"
+                        )
+                    else:
+                        self._log.info("Connecting to OPCUA Server...")
+                    await self._connection.connect()
+                except Exception as e:
+                    self._log.info(f"Failed to connect to OPCUA Server: {e}")
+                    await asyncio.sleep(self._connect_timeout)
+                    _retries += 1
+            if _retries == self._max_connect_retries:
+                raise ConnectionError("Could not connect to the server.")
             self._log.info("Client connected.")
         else:
             self._log.info("Client already connected.")
@@ -122,7 +145,7 @@ class ExternalOPCUAClient(SimulationComponent):
         elif self._connection.uaclient.protocol.state == "open":
             return True
         else:
-            print(self._connection.uaclient.protocol.state)
+            self._log.debug(self._connection.uaclient.protocol.state)
             return False
 
     async def _map_nodeIDs_to_nodeNames(self, node_names: list[str]) -> dict[str, str]:
@@ -155,7 +178,7 @@ class ExternalOPCUAClient(SimulationComponent):
     async def connect(self):
         """Connect to OPCUA Server and initialize node maps."""
 
-        self._log.info("Connecting to OPCUA Client...")
+        self._log.debug("Connecting to OPCUA Client...")
         await self._connect()
 
         # Create a mappping of node names (inputs, outputs, utility nodes) to node IDs
@@ -175,6 +198,10 @@ class ExternalOPCUAClient(SimulationComponent):
         all_node_names.append(self._time_node_name)
 
         self._names_id_map = await self._map_nodeIDs_to_nodeNames(all_node_names)
+
+        if self._enable_stop_time:
+            self._log.info("Disabling stop time...")
+            await self.set_enable_stop_time(self._enable_stop_time)
 
         self._log.info(
             f"Connection established with OPCUA Server at {self._host}:{self._port}"
@@ -213,9 +240,12 @@ class ExternalOPCUAClient(SimulationComponent):
         The time for each step is determined by the external OPCUA server. Prior to performing the steps, the input values are set and after the steps the output values are read.
 
         Args:
-            t : Not used.
-            dt : Not used.
+            t : Current time of the simulation.
+            dt : Time step size of the simulation. Must be a multiple of the step size of the external OPCUA server.
         """
+        assert (
+            dt / self._step_size
+        ).is_integer(), f"TimePerCycle must be a multiple of StepSize. StepSize: {self._step_size}, TimePerCycle: {dt}"
 
         assert self.is_connected(), "Client is not connected to OPCUA Server."
 
@@ -224,38 +254,26 @@ class ExternalOPCUAClient(SimulationComponent):
 
         self._log.debug("Stepping Simulation")
 
-        start_time = await self.get_time()
-        temp_time = await self.get_time()
+        server_time = await self.get_time()
         # Workaround because not every step call performs a step
-        while (await self.get_time()) < (
-            start_time + self._steps_per_cycle * self._step_size
-        ):
-            if await self.get_time() < self._stop_time:
-                await self._do_single_step()
-                if await self.get_time() == temp_time + self._step_size:
-                    self._correct_step_counter += 1
-                elif await self.get_time() > temp_time + self._step_size:
-                    self._too_large_ts_counter += 1
-                else:
-                    self._wrong_step_counter += 1
-                temp_time = await self.get_time()
+        while (await self.get_time()) < (t + dt):
+            await self._do_single_step()
+            if await self.get_time() == server_time + self._step_size:
+                self._correct_step_counter += 1
+            elif await self.get_time() > server_time + self._step_size:
+                self._too_large_ts_counter += 1
             else:
-                break
+                self._wrong_step_counter += 1
+            server_time = await self.get_time()
 
-        if (
-            await self.get_time()
-            == start_time + self._step_size * self._steps_per_cycle
-        ):
+        if await self.get_time() == t + dt:
             self._correct_full_step_counter += 1
-        elif await self.get_time() > start_time:
+        elif await self.get_time() > t + dt:
             self._too_large_full_step_counter += 1
         else:
             self._false_full_step_counter += 1
 
         await self._read_output_values()
-
-        if await self.get_time() >= self._stop_time:
-            await self.terminate()
 
     def print_step_debug_evaluation(self):
         "Print statistics of how many steps were performed correctly, too large or too small."
@@ -335,7 +353,12 @@ class ExternalOPCUAClient(SimulationComponent):
 
     async def finalize(self):
         """Invoked after asnycua.Cancelled error is catched. Overwrite by child for client specific finalization tasks."""
-        pass
+        self.print_step_debug_evaluation()
+        try:
+            await self.terminate()
+            self.set_is_finished(True)
+        except:
+            pass
 
     async def initialize(self):
         """Invoked by mapper instance before first do_step call."""

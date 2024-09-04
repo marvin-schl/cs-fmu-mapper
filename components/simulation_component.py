@@ -1,7 +1,5 @@
-import logging
 from abc import ABC, abstractmethod
-
-from tqdm import tqdm
+import logging
 
 
 class SimulationComponent(ABC):
@@ -9,21 +7,18 @@ class SimulationComponent(ABC):
     @classmethod
     def get_subclasses(cls):
         for subclass in cls.__subclasses__():
-            if not subclass.__module__.startswith("cs_fmu_mapper.components"):
-                pass
-            else:
-                yield from subclass.get_subclasses()
-                yield subclass
+            yield from subclass.get_subclasses()
+            yield subclass
 
     def __init__(self, config, name):
         self._log = logging.getLogger(self.__class__.__name__)
         self._log.info("Initializing " + str(self.__class__.__name__) + ".")
-        self._config: dict = config
-        self._name: str = name
-        self._is_finished: bool = True
-        self._progress: float = 1
-        self._input_values: dict[str, float] = {}
-        self._output_values: dict[str, float] = {}
+        self._config = config
+        self._name = name
+        self._is_finished = True
+
+        self._input_values = None
+        self._output_values = None
 
         if "inputVar" in self._config.keys():
             self._init_input_values()
@@ -95,17 +90,12 @@ class SimulationComponent(ABC):
         return self._config["type"]
 
     async def finalize(self):
-        """Callback Function which is called after last do_step to finalize the component."""
         pass
 
     async def initialize(self):
-        """Callback Function which is called before first do_step to initialize the component."""
         pass
 
     def contains(self, name):
-        if not self._input_values and not self._output_values:
-            return False
-
         if self._input_values and self._output_values:
             return (
                 name in self._input_values.keys() or name in self._output_values.keys()
@@ -118,9 +108,6 @@ class SimulationComponent(ABC):
     @abstractmethod
     async def do_step(self, t, dt):
         pass
-
-    def get_progress(self):
-        return self._progress if not self._is_finished else 1
 
     def is_finished(self):
         return self._is_finished

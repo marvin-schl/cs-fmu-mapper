@@ -1,3 +1,9 @@
+Master:
+  type: standalone-master
+  timeStepPerCycle: 0.01
+ # tend: 10
+
+
 ############################################################################################################################################################################################################################################
 # FMU Components can be defined by specifying the type as fmu. Available backend options are 'pyfmi' and 'fmpy' to specify which fmi library python should use to interact with the FMU.                                                   #
 # The path specifies the location of the FMU file or alternatively a directory where multiple FMUs are located. For the latter case you can choose at each startup of the program the FMU that shall be simulated.                         #
@@ -17,9 +23,6 @@ Filter:
     fmu_y:
       init: 0
       nodeID: y
-    fmu_y2:
-      init: 0
-      nodeID: y2
 
 ######################################################################################################################################################################################
 # The Mapping could also be configured betweem a PLC and a FMU. The following code snippet shows an example of how to configure the mapping between a FMU and a PLC.                #
@@ -28,6 +31,7 @@ Filter:
 ######################################################################################################################################################################################
 #CodeSys:
 #  type: plc
+#  timeStepPerCycle: 0.01
 #  host: localhost
 #  port: '4840'
 #  finishedNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.calculationFinished
@@ -69,7 +73,7 @@ Logger:
   type: logger
   path: example/results/
   usetex: false                 #optional, true for use of Latex renderer
-  fontafamily: sans-serif       #optional, serif for latex style font
+  fontfamily: sans-serif       #optional, serif for latex style font
   inputVar:
     log_y:
       init: 0
@@ -81,8 +85,8 @@ Logger:
     step_response:
       type: time_series
       title: Filter Step Response
-      subgrid: true #optional
-      grid: true #optional
+      subgrid: true              #optional
+      grid: true                 #optional
       vars:
       - log_u
       - log_y
@@ -114,7 +118,6 @@ Logger:
 # of outputVars. Any inputVar and/or outputVar should only be used once in the mapping section.                                                                                        #
 ########################################################################################################################################################################################
 Mapping:
-  timeStepPerCycle: 0.01
   preStepMappings:
     scen_u: 
     - fmu_u
