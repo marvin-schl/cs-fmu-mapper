@@ -30,16 +30,40 @@ class ComponentFactory:
         self._components = []
         self._master_component = None
 
-        # get all possible component classes
         classes = list(SimulationComponent.get_subclasses())
         master_classes = list(MasterComponent.get_subclasses())
 
-        print(classes)
-        print(master_classes)
+        self._log.debug("Master classes: " + str(master_classes))
 
-        component_classes = {c.type: c for c in classes}
+        component_classes = {c.type: (c, None) for c in classes}
+        # Import custom components
+        if custom_components:
+            for component_class_name, component_info in custom_components.items():
+                assert isinstance(
+                    component_info, tuple
+                ), "Custom components must be defined as a dictionary with the class name as key and a tuple with the path to the component and the input parameters (dict) as value."
+                component_path = component_info[0]
+                component_input = component_info[1]
+                try:
+                    # Add the custom component to the component_classes dictionary if it is a subclass of SimulationComponent
+                    exec(f"from {component_path} import {component_class_name}")
+                    component_class = eval(component_class_name)
+                    if not issubclass(component_class, SimulationComponent):
+                        raise Exception(
+                            f"Component {component_class_name} is not a subclass of SimulationComponent."
+                        )
+                    component_classes[component_class.type] = (
+                        component_class,
+                        component_input,
+                    )
 
-        # copy configuration and delete Mapping section as Mapper is no subclass of SimulationComponent
+                except Exception as e:
+                    self._log.error(
+                        f"Error importing component {component_class_name}: {e}"
+                    )
+
+        self._log.debug(list(component_classes.keys()))
+
         componentConfig = config.copy()
         del componentConfig["Mapping"]
 
@@ -53,17 +77,11 @@ class ComponentFactory:
                     **component_input if component_input else {},
                 )
                 self._components.append(component_instance)
-
-                # check if the component is a master component
                 if cls in master_classes and self._master_component is None:
-                    # if so set the master component
                     self._master_component = component_instance
                 elif cls in master_classes and self._master_component:
-                    # if it is a master component and there is already a master component defined, raise an exception
-                    # only a single simulation master can exist
                     raise Exception("Multiple master components defined.")
             except KeyError:
-                # raise an exception if the specified type in the configartion can not be associated with a SimulationComponent subclass
                 raise NotImplementedError(
                     "Defined Component "
                     + name
@@ -72,11 +90,9 @@ class ComponentFactory:
                     + " is not implemented."
                 )
 
-        # rase an exception if no master component is defined => there has to be exactly one master component
         if self._master_component is None:
             raise Exception("No master components defined.")
 
-        # create the mapper with it's configuation and all instantiated components
         mapper = OPCUAFMUMapper(
             config=config["Mapping"],
             master=self._master_component,
@@ -84,5 +100,4 @@ class ComponentFactory:
         )
         self._master_component.set_mapper(mapper)
 
-        # return the master component as this is the entry point for the simulation
         return self._master_component

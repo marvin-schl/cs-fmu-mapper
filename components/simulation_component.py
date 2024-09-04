@@ -1,7 +1,5 @@
-import logging
 from abc import ABC, abstractmethod
-
-from tqdm import tqdm
+import logging
 
 
 class SimulationComponent(ABC):
@@ -9,29 +7,23 @@ class SimulationComponent(ABC):
     @classmethod
     def get_subclasses(cls):
         for subclass in cls.__subclasses__():
-            if not subclass.__module__.startswith("cs_fmu_mapper.components"):
-                pass
-            else:
-                yield from subclass.get_subclasses()
-                yield subclass
+            yield from subclass.get_subclasses()
+            yield subclass
 
     def __init__(self, config, name):
         self._log = logging.getLogger(self.__class__.__name__)
         self._log.info("Initializing " + str(self.__class__.__name__) + ".")
-        self._config: dict = config
-        self._name: str = name
-        self._is_finished: bool = True
+        self._config = config
+        self._name = name
+        self._is_finished = True
 
-        self._input_values: dict[str, float] = {}
-        self._output_values: dict[str, float] = {}
+        self._input_values = None
+        self._output_values = None
 
         if "inputVar" in self._config.keys():
             self._init_input_values()
         if "outputVar" in self._config.keys():
             self._init_output_values()
-
-        self._pbar: tqdm = None
-        self._pbar_update_counter: int = 0
 
     def _init_input_values(self):
         self._input_values = {
@@ -98,17 +90,12 @@ class SimulationComponent(ABC):
         return self._config["type"]
 
     async def finalize(self):
-        """Callback Function which is called after last do_step to finalize the component."""
         pass
 
     async def initialize(self):
-        """Callback Function which is called before first do_step to initialize the component."""
         pass
 
     def contains(self, name):
-        if not self._input_values and not self._output_values:
-            return False
-
         if self._input_values and self._output_values:
             return (
                 name in self._input_values.keys() or name in self._output_values.keys()
@@ -130,25 +117,6 @@ class SimulationComponent(ABC):
 
     def notify_simulation_finished(self):
         pass
-
-    def create_progress_bar(self, final_time, color, desc):
-        self._pbar = tqdm(
-            total=final_time,
-            unit="s",
-            bar_format="{l_bar}{bar}| {n_fmt}{unit}/{total_fmt}{unit} [{elapsed}<{remaining}]",
-            dynamic_ncols=True,
-            colour=color,
-            desc=desc,
-        )
-
-    def update_progress_bar(self, dt):
-        if dt >= 1:
-            self._pbar.update(dt)
-        else:
-            self._pbar_update_counter += 1
-            if self._pbar_update_counter == int(1 / dt):
-                self._pbar.update(1)
-                self._pbar_update_counter = 0
 
     def log_info(self, msg):
         self._log.info(msg)
