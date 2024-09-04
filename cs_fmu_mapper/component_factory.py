@@ -68,6 +68,8 @@ class ComponentFactory:
         del componentConfig["Mapping"]
 
         for name in componentConfig.keys():
+            if "type" not in componentConfig[name].keys():
+                continue
             type = componentConfig[name]["type"]
             try:
                 cls, component_input = component_classes[type]
