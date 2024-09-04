@@ -25,6 +25,7 @@ class Scenario(SimulationComponent):
         else:
             raise FileNotFoundError("Scenario file not found at: " + config["path"])
         assert "t" in self._scenario.columns, "Scenario file must contain a column 't'."
+
         self._is_finished = False
         self._final_time = int(
             self._scenario.sort_values(by="t", ascending=False).iloc[0]["t"]
@@ -41,10 +42,9 @@ class Scenario(SimulationComponent):
     async def do_step(self, t, dt):
         if self._is_finished:
             return
-        if self._pbar is None:
-            self.create_progress_bar(self._final_time, "blue", "Scenario")
-        self.update_progress_bar(dt)
+
         try:
+            self._progress = t / self._final_time
             cur_val = (
                 self._scenario[self._scenario["t"] >= t]
                 .sort_values(by="t", ascending=True)
@@ -64,7 +64,6 @@ class Scenario(SimulationComponent):
         except Exception as e:
             self._log.debug(e)
             self._is_finished = True
-            self._pbar.close()
             self._log.info("Scenario finished at t=" + str(t))
 
     async def finalize(self):
@@ -72,3 +71,6 @@ class Scenario(SimulationComponent):
 
     def is_finished(self):
         return self._is_finished
+
+    def get_progress(self):
+        return self._progress

@@ -94,6 +94,15 @@ class OPCUAFMUMapper:
         self._log.info("Simulation finished.")
         return True
 
+    def get_progress(self):
+        return min(
+            [
+                component.get_progress()
+                for component in self._components.values()
+                if component != self._master
+            ]
+        )
+
     async def initialize(self):
         """Initailizes the simulation and all components."""
         self._log.info("Initializing simulation...")

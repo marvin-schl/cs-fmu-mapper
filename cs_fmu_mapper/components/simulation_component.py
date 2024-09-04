@@ -21,7 +21,7 @@ class SimulationComponent(ABC):
         self._config: dict = config
         self._name: str = name
         self._is_finished: bool = True
-
+        self._progress: float = 1
         self._input_values: dict[str, float] = {}
         self._output_values: dict[str, float] = {}
 
@@ -29,9 +29,6 @@ class SimulationComponent(ABC):
             self._init_input_values()
         if "outputVar" in self._config.keys():
             self._init_output_values()
-
-        self._pbar: tqdm = None
-        self._pbar_update_counter: int = 0
 
     def _init_input_values(self):
         self._input_values = {
@@ -122,6 +119,9 @@ class SimulationComponent(ABC):
     async def do_step(self, t, dt):
         pass
 
+    def get_progress(self):
+        return self._progress if not self._is_finished else 1
+
     def is_finished(self):
         return self._is_finished
 
@@ -130,25 +130,6 @@ class SimulationComponent(ABC):
 
     def notify_simulation_finished(self):
         pass
-
-    def create_progress_bar(self, final_time, color, desc):
-        self._pbar = tqdm(
-            total=final_time,
-            unit="s",
-            bar_format="{l_bar}{bar}| {n_fmt}{unit}/{total_fmt}{unit} [{elapsed}<{remaining}]",
-            dynamic_ncols=True,
-            colour=color,
-            desc=desc,
-        )
-
-    def update_progress_bar(self, dt):
-        if dt >= 1:
-            self._pbar.update(dt)
-        else:
-            self._pbar_update_counter += 1
-            if self._pbar_update_counter == int(1 / dt):
-                self._pbar.update(1)
-                self._pbar_update_counter = 0
 
     def log_info(self, msg):
         self._log.info(msg)
