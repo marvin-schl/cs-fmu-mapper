@@ -48,6 +48,7 @@ class OPCUAFMUMapper:
         Args:
             map (dict): A dict which contains the mappings between the output values of the source component and the input values of the destination component.
         """
+
         for source, destinations in maps.items():
             source_component = self._name_component_map[source]
             value = source_component.get_output_value(source)

@@ -27,9 +27,11 @@ class Scenario(SimulationComponent):
         assert "t" in self._scenario.columns, "Scenario file must contain a column 't'."
 
         self._is_finished = False
+        self._progress = 0
         self._final_time = int(
             self._scenario.sort_values(by="t", ascending=False).iloc[0]["t"]
         )
+        self._log.info(f"Final time of Scneario is: {self._final_time}s")
 
     def set_input_values(self, new_val):
         raise NotImplementedError("Scenario does not provide input values.")
@@ -60,7 +62,6 @@ class Scenario(SimulationComponent):
                     )
                 )
             )
-
         except Exception as e:
             self._log.debug(e)
             self._is_finished = True

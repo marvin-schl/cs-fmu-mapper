@@ -31,7 +31,8 @@ class MasterComponent(SimulationComponent):
 
     def update_progress_bar(self, finished=False):
         if finished:
-            self._pbar.update(100 - self._prev_progress * 100)
+            # ensure that progressbar ends at 100%
+            self._pbar.update((1 - self._prev_progress) * 100)
             self._pbar.refresh()
             self._pbar.close()
             return
