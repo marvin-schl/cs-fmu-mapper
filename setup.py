@@ -14,7 +14,7 @@ setup(
     url="https://github.com/marvin-schl/cs-fmu-mapper",
     long_description=readme,
     install_requires=[
-        "pyfmi",
+        #    "pyfmi",
         "asyncua",
         "FMPy",
         "inquirer",
