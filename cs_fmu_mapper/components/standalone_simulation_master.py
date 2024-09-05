@@ -33,6 +33,6 @@ class StandaloneSimulationMaster(MasterComponent):
 
                 if self._tend is not None and self.get_time() >= self._tend:
                     self._is_finished = True
-                    self.update_progress_bar(finished=True)
+                    
 
         await self.finalize()
