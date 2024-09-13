@@ -1,0 +1,20 @@
+config_type: modular_config
+
+Components:
+  model: Filter
+  connection: FMU
+  logger:
+    - scatter_example
+    - step_response
+  scenario: example_scenario
+  mapping: mapping
+
+# END_COMPONENT_DEFINITIONS
+
+Master:
+  type: standalone-master
+  timeStepPerCycle: 0.01
+  # tend: 4
+
+Model:
+  stepSize: 0.01

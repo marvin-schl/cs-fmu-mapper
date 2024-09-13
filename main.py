@@ -9,6 +9,7 @@ from contextlib import suppress
 import yaml
 import sys
 import os
+from cs_fmu_mapper.config import Config
 
 os.environ["FOR_DISABLE_CONSOLE_CTRL_HANDLER"] = "1"
 
@@ -40,21 +41,14 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-c",
     "--config_path",
-    help="Path to config.json file which defines OPCUA server information, node mapping and optionally Modelica simulation setup.",
+    help="Path to config file which defines OPCUA server information, node mapping and optionally Modelica simulation setup.",
     type=str,
-    default="config.json",
+    default="modular_config.yaml",
 )
 args = parser.parse_args()
 
 logger.info("Reading configuration file...")
-f = open(args.config_path)
-
-if args.config_path.endswith(".json"):
-    logger.info("Reading JSON configuration file...")
-    config = json.load(f)
-elif args.config_path.endswith(".yaml") or args.config_path.endswith(".yml"):
-    logger.info("Reading YAML configuration file...")
-    config = yaml.load(f, Loader=yaml.FullLoader)
+config = Config(config_file_path=args.config_path).get_config()
 
 logger.info("Creating PLCClient, FMU Simualation and Mapper Instance...")
 master = ComponentFactory().createComponents(config)

@@ -1,0 +1,18 @@
+MappingRules:
+  Prefix:
+    Logger: "log"
+    Model: "model"
+    Scenario: "scen"
+  Components:
+    Logger:
+      inputVar:
+        - source: { Model: "outputVar" }
+          destination: { Logger: "inputVar" }
+          type: postStepMappings
+        - source: { Scenario: "outputVar" }
+          destination: { Logger: "inputVar" }
+          type: preStepMappings
+    Scenario:
+      outputVar:
+        - destination: { Model: "inputVar" }
+          type: preStepMappings

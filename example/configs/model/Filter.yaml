@@ -1,0 +1,10 @@
+Model:
+  path: example/fmu/
+  inputVar:
+    model.in.u:
+      init: 0
+      nodeID: u
+  outputVar:
+    model.out.y:
+      init: 0
+      nodeID: y
