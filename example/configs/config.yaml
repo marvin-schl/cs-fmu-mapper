@@ -3,7 +3,7 @@ config_type: full_config
 Master:
   type: standalone-master
   timeStepPerCycle: 0.01
-#  tend: 4
+ # tend: 10
 
 ############################################################################################################################################################################################################################################
 # FMU Components can be defined by specifying the type as fmu. Available backend options are 'pyfmi' and 'fmpy' to specify which fmi library python should use to interact with the FMU.                                                   #

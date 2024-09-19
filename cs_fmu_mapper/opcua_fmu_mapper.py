@@ -48,6 +48,7 @@ class OPCUAFMUMapper:
         Args:
             map (dict): A dict which contains the mappings between the output values of the source component and the input values of the destination component.
         """
+
         for source, destinations in maps.items():
             source_component = self._name_component_map[source]
             value = source_component.get_output_value(source)
@@ -93,6 +94,15 @@ class OPCUAFMUMapper:
                 await component.finalize()
         self._log.info("Simulation finished.")
         return True
+
+    def get_progress(self):
+        return min(
+            [
+                component.get_progress()
+                for component in self._components.values()
+                if component != self._master
+            ]
+        )
 
     async def initialize(self):
         """Initailizes the simulation and all components."""

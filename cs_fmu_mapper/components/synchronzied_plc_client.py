@@ -11,7 +11,7 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
 
     def __init__(self, config, name) -> None:
         AbstractOPCUAClient.__init__(self, config, name)
-        SimulationComponent.__init__(self, config, name)
+        MasterComponent.__init__(self, config, name)
         self._stepNode = None
         self._finishedNode = None
         self._simulationFinishedNode = None
@@ -19,6 +19,12 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
         self._simulationFinished = False
         self._stepNodeVal = False
         self._start_time = 0
+
+        self._run_inifinite = False
+        if "runInfinite" in config.keys():
+            self._run_inifinite = config["runInfinite"]
+            self._is_finished = not self._run_inifinite
+            self._progress = 0 if self._run_inifinite else 1
 
         self._k = 0
         self._n = 0
@@ -37,13 +43,19 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
         )
         self._mapper.init_node_maps()
 
+    async def run(self):
+        await AbstractOPCUAClient.run(self)
+
     async def _run(self):
         await super().initialize()
-        while self._running:
+        while not self._simulationFinished:
             curStepNodeVal = await self._stepNode.read_value()
             terminateNodeVal = await self._terminateNode.read_value()
-            if terminateNodeVal:
-                await self.finalize()
+
+            if terminateNodeVal or (
+                not self._run_inifinite and self._mapper.all_components_finished()
+            ):
+                self._simulationFinished = True
             elif not self._stepNodeVal and curStepNodeVal:
                 await self.do_step()
             self._stepNodeVal = curStepNodeVal
@@ -52,6 +64,7 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
                 await self._simulationFinishedNode.write_value(
                     True, VariantType.Boolean
                 )
+        await self.finalize()
 
     async def do_step(self, t=None, dt=None):
         self._start_time = time.time_ns()
@@ -59,7 +72,7 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
             output_node = self._nodes[output]
             self.set_output_value(output, await output_node.read_value())
 
-        await super.do_step(None, None)
+        await super().do_step(None, None)
 
         for input in self.get_input_values().keys():
             input_node = self._nodes[input]
@@ -100,6 +113,5 @@ class SynchronizedPlcClient(MasterComponent, AbstractOPCUAClient):
                 )
 
     async def finalize(self):
-        self._running = False
         await super().finalize()
         # np.save("execution_time.npy", self._exec_times)

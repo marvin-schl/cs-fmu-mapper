@@ -64,17 +64,15 @@ class ComponentFactory:
 
         self._log.debug(list(component_classes.keys()))
 
-        componentConfig = config.copy()
-        del componentConfig["Mapping"]
+        # Extract configuration sections with 'type' field declared -> presumably SimulationComponent's
+        componentConfig = {name: cfg for name, cfg in config.items() if "type" in cfg}
 
-        for name in componentConfig.keys():
-            if "type" not in componentConfig[name].keys():
-                continue
-            type = componentConfig[name]["type"]
+        for name, cfg in componentConfig.items():
+            type = cfg["type"]
             try:
                 cls, component_input = component_classes[type]
                 component_instance = cls(
-                    componentConfig[name],
+                    cfg,
                     name,
                     **component_input if component_input else {},
                 )
@@ -85,11 +83,7 @@ class ComponentFactory:
                     raise Exception("Multiple master components defined.")
             except KeyError:
                 raise NotImplementedError(
-                    "Defined Component "
-                    + name
-                    + " of type "
-                    + type
-                    + " is not implemented."
+                    f"Defined Component {name} of type {type} is not implemented."
                 )
 
         if self._master_component is None:
