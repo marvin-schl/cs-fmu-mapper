@@ -1,0 +1,27 @@
+modular_config: True # Set to True if the config is a modular config. If set to False or not present the config is treated as a full config.
+
+# Components: This section defines the structure and loading order of component configurations.
+# Keys: Represent subdirectories within the config_directory.
+# Values: Can be either a string (single file) or a list (multiple files) containing component settings.
+# File naming: Single file - value is filename without .yaml extension; Multiple files - list filenames without extensions in desired loading order.
+# Example: model: Filter loads 'Filter.yaml' from 'config_directory/model/' subdirectory.
+# Example: logger: [scatter_example, step_response] loads files in that order from 'config_directory/logger/'.
+# Note: The loading order of components is crucial for managing dependencies between components.
+Components:
+  model: Filter
+  connection: FMU
+  logger:
+    - scatter_example
+    - step_response
+  scenario: example_scenario
+  mapping: mapping
+
+# END_COMPONENT_DEFINITIONS
+
+Master:
+  type: standalone-master
+  timeStepPerCycle: 0.01
+  # tend: 4
+
+Model:
+  stepSize: 0.01

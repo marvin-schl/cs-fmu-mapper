@@ -244,8 +244,8 @@ class ExternalOPCUAClient(SimulationComponent):
             dt : Time step size of the simulation. Must be a multiple of the step size of the external OPCUA server.
         """
         assert (
-            dt / self._step_size
-        ).is_integer(), f"TimePerCycle must be a multiple of StepSize. StepSize: {self._step_size}, TimePerCycle: {dt}"
+            dt % self._step_size == 0
+        ), f"timeStepPerCycle must be a multiple of StepSize. StepSize: {self._step_size}, timeStepPerCycle: {dt}"
 
         assert self.is_connected(), "Client is not connected to OPCUA Server."
 

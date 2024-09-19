@@ -1,0 +1,123 @@
+Master:
+  type: standalone-master
+  timeStepPerCycle: 0.01
+ # tend: 10
+
+############################################################################################################################################################################################################################################
+# FMU Components can be defined by specifying the type as fmu. Available backend options are 'pyfmi' and 'fmpy' to specify which fmi library python should use to interact with the FMU.                                                   #
+# The path specifies the location of the FMU file or alternatively a directory where multiple FMUs are located. For the latter case you can choose at each startup of the program the FMU that shall be simulated.                         #
+# The numberOfStepsPerCycle specifies how many steps the FMU should take per cycle. This parameter is especially important when the FMU is used in a co-simulation with a PLC. For standalone simulations this parameter can be set to 1.  #
+# The inputVar and outputVar specifies the variables that should be read from the FMU. The entry names are arbitrary and can be chosen freely with the exception that the name has to be unique as they are used for mapping. The node     #
+# nodeIDs of each inputVar/outputVar specify access path of the variable inside the FMU                                                                                                                                                    #
+############################################################################################################################################################################################################################################
+Model:
+  type: fmu-pyfmi #or fmu-fmpy
+  path: example/fmu/
+  numberOfStepsPerCycle: 1
+  inputVar:
+    model.in.u:
+      init: 0
+      nodeID: u
+  outputVar:
+    model.out.y:
+      init: 0
+      nodeID: y
+
+######################################################################################################################################################################################
+# The Mapping could also be configured betweem a PLC and a FMU. The following code snippet shows an example of how to configure the mapping between a FMU and a PLC.                #
+# Note that further adjustements are necessary to make this work. The PLC has to run a Watchdog so that the synchronization between the FMU and the PLC is ensured.                 #
+# A Scenario File for external Signal injection could still be used.                                                                                                                #
+######################################################################################################################################################################################
+#CodeSys:
+#  type: plc
+#  timeStepPerCycle: 0.01
+#  host: localhost
+#  port: '4840'
+#  finishedNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.calculationFinished
+#  simulationFinishedNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.PLC_PRG.simulationFinished
+#  stepNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.doStep
+#  terminateNodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.SimulationWatchdog.terminate
+#  timePerCycleNodeID: ''
+#  inputVar:
+#    plc_u:
+#      init: 0
+#      nodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.PLC_PRG.u
+#  outputVar:
+#    plc_y:
+#      init: 0
+#      nodeID: ns=4;s=|var|CODESYS Control Win V3 x64.Application.PLC_PRG.y
+
+######################################################################################################################################################################################
+# A Scenario can define external signals when the FMU is simulated standalone or external signals when simulated in conjunction with a PLC. Thus it only contains outputs.           #
+# The path specifies the Location of the Scenario file. Alternatively a directory can be set when choosing the scenario file at startup is preferred.                                #
+# The outputVar specifies the variables that should be read from the Scenario file. The entry names are arbitrary and can be chosen freely with the exception                        #
+# that the names should be unique as they are used for mapping. The nodeID specifies the column name the data should be taken from. The csv file should contain at least a column    #
+# 't' for time data and at least one more data column.                                                                                                                               #
+######################################################################################################################################################################################
+Scenario:
+  type: scenario
+  path: example/scenario/
+  outputVar:
+    scen.out.u:
+      init: 0
+      nodeID: u
+
+######################################################################################################################################################################################
+# A Logger can be used to log the values of the variables that are read from the FMU or the PLC. The path specifies the location where the results should be stored. Thus it only    #
+# contains inputs. The inputVar specifies the variables that should be logged. The entry names are arbitrary and can be chosen freely with the exception that the names should be    #
+# unique as they are used for mapping. Plots can be configured as shown. The logged raw data will be saved as csv also. The configured nodeIDs specify the column names.             #
+######################################################################################################################################################################################
+Logger:
+  type: logger
+  path: example/results/
+  usetex: false #optional, true for use of Latex renderer
+  fontfamily: sans-serif #optional, serif for latex style font
+  inputVar:
+    log.in.y:
+      init: 0
+      nodeID: y
+    log.in.u:
+      init: 0
+      nodeID: u
+  plots:
+    step_response:
+      type: time_series
+      title: Filter Step Response
+      subgrid: true #optional
+      grid: true #optional
+      vars:
+        - log.in.u
+        - log.in.y
+      legend: #optional
+        - u
+        - y
+      xlabel: Time [s]
+      ylabel: Signal Value
+    scatter_example:
+      type: scatter
+      title: Scatter Example
+      subgrid: true #optional
+      grid: true #optional
+      vars:
+        - log.in.u
+      x_var: log.in.y
+      legend: #optional
+        - u over y
+      xlabel: Y with some \LaTeX
+      ylabel: U
+
+########################################################################################################################################################################################
+# The Mapping specifies how the variables from the FMU, PLC and Scenario are mapped to each other. The timeStepPerCycle specifies the time which is simulated per step. For standalone #
+# simulation without PLC this equals the FMU step size if numberOfStepsPerCycle is set to 1. For PLC co-simulation the timeStepPerCycle should be set accordingly to the               #
+# desired real time scaling, e.g. to the PLC cycle time for a real time scaling factor of 1. The PreStepMappings specify the mappings that should be done before the call of doStep(). #
+# The postStepMappings specify the mappings that should be done after the doStep() call. The Mappings can be configured from any defined inputVar to an arbitrary amount               #
+# of outputVars. Any inputVar and/or outputVar should only be used once in the mapping section.                                                                                        #
+########################################################################################################################################################################################
+Mapping:
+  preStepMappings:
+    scen.out.u:
+      - model.in.u
+      - log.in.u
+  postStepMappings:
+    model.out.y:
+      - log.in.y

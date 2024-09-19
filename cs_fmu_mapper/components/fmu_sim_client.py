@@ -1,14 +1,15 @@
-from pyfmi import load_fmu
-import pyfmi.fmi as fmi
-from pyfmi.master import Master
-import numpy as np
 import logging
-from abc import abstractmethod, ABC
 import os
-from cs_fmu_mapper.utils import chooseFile
-from fmpy.fmi2 import FMU2Slave
-from fmpy import extract, read_model_description
+from abc import ABC, abstractmethod
+
+import numpy as np
+import pyfmi.fmi as fmi
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
+from cs_fmu_mapper.utils import chooseFile
+from fmpy import extract, read_model_description
+from fmpy.fmi2 import FMU2Slave
+from pyfmi import load_fmu
+from pyfmi.master import Master
 
 
 class FMUSimClient(SimulationComponent):
@@ -41,7 +42,8 @@ class FMUSimClient(SimulationComponent):
         self._model = self._load_model(path)
 
         self._log.info("Loaded FMU successfully.")
-        self._steps_per_cycle = config["numberOfStepsPerCycle"]
+        self._step_size = config["stepSize"]
+        # self._steps_per_cycle = config["numberOfStepsPerCycle"]
 
         self._init_model()
         self._log.info("Finished Initialization of Sim Client.")
@@ -78,23 +80,31 @@ class FMUSimClient(SimulationComponent):
         self._set_input_values()
 
         self._log.debug("Stepping Simulation")
-
+        assert (
+            dt % self._step_size == 0
+        ), f"timeStepPerCycle must be a multiple of StepSize. StepSize: {self._step_size}, timeStepPerCycle: {dt}"
         t_loop = t
-        for _ in range(0, self._steps_per_cycle):
-            self._call_fmu_step(t_loop, dt / self._steps_per_cycle)
-            t_loop = t_loop + dt / self._steps_per_cycle
+        for _ in range(0, int(dt / self._step_size)):
+            self._call_fmu_step(t_loop, self._step_size)
+            t_loop = t_loop + self._step_size
 
         self._log.debug("Reading Simulation Output.")
         self._read_output_values()
 
-    def get_total_time_per_cycle(self):
-        """Returns the time in seconds which the simulation steps forward per call of do_step()-method. The time depends on the configured step size and the
-        number of steps per cycle.
+    def get_total_time_per_cycle(self, dt):
+        """Returns the total simulation time advanced per call of the do_step() method.
+
+        The total time depends on the configured step size and the provided dt parameter.
+        It calculates the number of full steps that can be taken within dt and multiplies
+        it by the step size.
+
+        Args:
+            dt (float): The desired time step for the do_step() method.
 
         Returns:
-            float: Time in seconds per do_step() call.
+            float: Total simulation time in seconds advanced per do_step() call.
         """
-        return self._step_size * self._steps_per_cycle
+        return self._step_size * int(dt / self._step_size)
 
 
 class FMPySimClient(FMUSimClient):

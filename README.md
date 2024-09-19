@@ -31,6 +31,13 @@ Besides the component configuration, there is a `Mapping` section where the Mapp
 
 If there is a `plc` component configured the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that the simulation is finished. In standalone mode, the simulation will then finalize itself. In `plc` master mode the `plc` should react accordingly and should initiate the termination of the program.
 
+### Modular Configurations
+
+Modular configurations allow for a more flexible and scalable configuration of simulations. Instead of defining all components in a single file, you can split the configuration into multiple files and directories. This approach enhances reusability and maintainability of the configuration.
+
+An Example for a modular configuration is given [here](example/configs/modular_config.yaml). Modular configurations are enabled by setting the `modular_config` flag to `true`. Otherwise the configuration is treated as a full config.
+
+
 ## Usage
 
 The example can be executed via the following command:
