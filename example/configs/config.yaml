@@ -1,5 +1,3 @@
-config_type: full_config
-
 Master:
   type: standalone-master
   timeStepPerCycle: 0.01

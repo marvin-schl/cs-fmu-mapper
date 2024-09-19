@@ -32,20 +32,15 @@ class Config:
             Path(self._config_dir) / config_file_path
         )
         try:
-            self._config_type = self._settings_config.config_type
+            self._modular_config = self._settings_config.modular_config
         except AttributeError:
-            raise KeyError("config_type not found in the config file")
-        if self._config_type == "full_config":
-            self._handle_full_config()
-        elif self._config_type == "modular_config":
-            self._handle_component_config(config_file_path)
+            self._modular_config = False
+        if self._modular_config:
+            self._handle_modular_config(config_file_path)
         else:
-            raise ValueError(f"Unknown config type: {self._config_type}")
-        if "config_type" in self._config:
-            del self._config["config_type"]
-
-    def _config_constructor(self, loader, node):
-        return self._load_partial_settings(node.value)
+            self._handle_full_config()
+        if "modular_config" in self._config:
+            del self._config["modular_config"]
 
     def _handle_full_config(self):
         print(
@@ -53,7 +48,7 @@ class Config:
         )
         self._config = self._settings_config
 
-    def _handle_component_config(self, config_file_path: Union[str, Path]):
+    def _handle_modular_config(self, config_file_path: Union[str, Path]):
         for component, config_names in self._settings_config.Components.items():
             self._load_component_configs(component, config_names)
         self._merge_config(Path(config_file_path))
@@ -368,4 +363,4 @@ class Config:
 if __name__ == "__main__":
     config = Config(config_file_path="modular_config.yaml")
     print(config.get_config())
-    OmegaConf.save(config.get_config(), "output.yaml")
+    OmegaConf.save(config.get_config(), str(config._config_dir) + "/output.yaml")
