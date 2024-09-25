@@ -9,7 +9,7 @@ from contextlib import suppress
 import yaml
 import sys
 import os
-from cs_fmu_mapper.config import Config
+from cs_fmu_mapper.config import ConfigurationBuilder
 
 os.environ["FOR_DISABLE_CONSOLE_CTRL_HANDLER"] = "1"
 
@@ -43,12 +43,24 @@ parser.add_argument(
     "--config_path",
     help="Path to config file which defines OPCUA server information, node mapping and optionally Modelica simulation setup.",
     type=str,
-    default="modular_config.yaml",
+    default="config.yaml",
 )
+parser.add_argument(
+    "-b",
+    "--use_config_builder",
+    help="Set this flag to use config builder.",
+    action="store_true",
+    default=False,
+)
+
 args = parser.parse_args()
 
 logger.info("Reading configuration file...")
-config = Config(config_file_path=args.config_path).get_config()
+if args.use_config_builder:
+    config = ConfigurationBuilder(config_file_path=args.config_path).get_config()
+else:
+    with open(args.config_path, "r") as file:
+        config = yaml.safe_load(file)
 
 logger.info("Creating PLCClient, FMU Simualation and Mapper Instance...")
 master = ComponentFactory().createComponents(config)

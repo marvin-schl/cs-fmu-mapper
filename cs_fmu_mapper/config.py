@@ -10,7 +10,7 @@ from omegaconf import DictConfig, ListConfig, ListMergeMode, OmegaConf
 from omegaconf.errors import OmegaConfBaseException
 
 
-class Config:
+class ConfigurationBuilder:
     """
     Configuration class for the cs-fmu-mapper.
 
@@ -361,6 +361,6 @@ class Config:
 
 
 if __name__ == "__main__":
-    config = Config(config_file_path="modular_config.yaml")
+    config = ConfigurationBuilder(config_file_path="modular_config.yaml")
     print(config.get_config())
     OmegaConf.save(config.get_config(), str(config._config_dir) + "/output.yaml")
