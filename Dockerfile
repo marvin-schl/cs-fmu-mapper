@@ -11,17 +11,15 @@ RUN conda install -y -c conda-forge pyfmi && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
-COPY . .
-
+COPY cs_fmu_mapper .
+COPY setup.py .
+COPY requirements.txt .
 
 # Install the current package
 RUN pip install .
 
-RUN  mkdir /tmp/app 
-RUN  cp /app/main.py /tmp/app/
-RUN  cp -r /app/example/* /tmp/app
+#remove sources
 RUN  rm -rf /app/*
-RUN  mv /tmp/app/* /app/
 
 # Set the default command
 CMD ["/bin/bash"]
