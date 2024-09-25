@@ -2,6 +2,17 @@
 
 ## Installation
 
+For usage only create a new python environment, install pyfmi manually via conda and this module via pip directly from git:
+
+```bash
+    > $ conda create -n cs-fmu-mapper python=3.10
+    > $ conda activate cs-fmu-mapper
+    > $ conda install -c conda-forge pyfmi
+    > $ pip3 install git+https://github.com/marvin-schl/cs-fmu-mapper.git
+```
+
+Alternativley you can install after cloning the repo for development purposes:
+
 ```bash
     > $ conda create -n cs-fmu-mapper python=3.10
     > $ conda activate cs-fmu-mapper
@@ -12,13 +23,13 @@
 This repository can be installed as a package via pip. The package has not yet been uploaded to PyPI. Therefore, the package has to be installed locally. By cloning the repository and executing the following command in the root directory of the repository the package will be installed. All dependencies will be installed automatically but note that pyfmi has to be installed manually as it cannot be installed via pip.
 
 ```bash
-    > $ pip install .
+    > $ pip install -e .
 ```
 
 ## Executing Example
 
 ```bash
-    > $ python main.py -c example/config.yaml
+    > $ python -m cs_fmu_mapper.main -c example/config.yaml
 ```
 
 ## Configuration
