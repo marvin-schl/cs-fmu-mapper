@@ -1,27 +1,25 @@
 FROM continuumio/miniconda3
 
-# Set working directory
-WORKDIR /app
+
+# Set working directory for package installation
+RUN mkdir /cs-fmu-mapper
+WORKDIR /cs-fmu-mapper
 
 # Copy requirements file
-COPY requirements.txt .
+COPY . .
 
 # Install dependencies
 RUN conda install -y -c conda-forge pyfmi && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
-COPY . .
-
-
 # Install the current package
 RUN pip install .
 
-RUN  mkdir /tmp/app 
-RUN  cp /app/main.py /tmp/app/
-RUN  cp -r /app/example/* /tmp/app
-RUN  rm -rf /app/*
-RUN  mv /tmp/app/* /app/
+#Set workdir for custom app
+WORKDIR /app
+
+# remove sources
+RUN rm -rf /cs-fmu-mapper
 
 # Set the default command
 CMD ["/bin/bash"]
