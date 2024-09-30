@@ -25,7 +25,6 @@ class StandaloneSimulationMaster(MasterComponent):
                 await self.do_step(None, None)
 
                 if self._t - self._last_sleep > 1:
-                    time.sleep(1)
                     self._last_sleep = self._t
 
                 if self._tend is not None:
