@@ -24,13 +24,20 @@ class ConfigurationBuilder:
         config_dir: Union[str, Path] = os.path.join(
             Path(__file__).parent.parent, "example", "configs"
         ),
+        settings_injections: dict[str, Any] = {},
+        config_injections: dict[str, Any] = {},
     ):
         self._config_dir = config_dir
+        self._config_injections = config_injections
         self._env = Environment(loader=FileSystemLoader(self._config_dir))
         self._config = OmegaConf.create()
         self._settings_config = self._load_partial_settings(
             Path(self._config_dir) / config_file_path
         )
+        if settings_injections:
+            self._settings_config = self._handle_injections(
+                self._settings_config, settings_injections
+            )
         try:
             self._modular_config = self._settings_config.modular_config
         except AttributeError:
@@ -51,7 +58,13 @@ class ConfigurationBuilder:
     def _handle_modular_config(self, config_file_path: Union[str, Path]):
         for component, config_names in self._settings_config.Components.items():
             self._load_component_configs(component, config_names)
-        self._merge_config(Path(config_file_path))
+        self._merge_config(Path(config_file_path))  # Apply overrides
+        # to prevent overwriting of settings_config injections, merge them with the config
+        self._config = OmegaConf.merge(self._config, self._settings_config)
+        if self._config_injections:
+            self._config = self._handle_injections(
+                self._config, self._config_injections
+            )
         self._generate_mappings()
 
     def _load_component_configs(
@@ -62,6 +75,11 @@ class ConfigurationBuilder:
                 self._merge_config(f"{component}/{config_name}.yaml")
         else:
             self._merge_config(f"{component}/{config_names}.yaml")
+
+    def _handle_injections(
+        self, config: DictConfig | ListConfig, injections: dict[str, Any]
+    ) -> DictConfig | ListConfig:
+        return OmegaConf.merge(config, OmegaConf.create(injections))
 
     def remove_prefix(self, var: str, index: int = 2) -> str:
         """
@@ -359,8 +377,11 @@ class ConfigurationBuilder:
         """Returns the combined config from the settings and the Components."""
         return OmegaConf.to_container(self._config)  # type: ignore
 
+    def save_to_yaml(self, path: Union[str, Path]):
+        OmegaConf.save(self._config, str(path))
+
 
 if __name__ == "__main__":
     config = ConfigurationBuilder(config_file_path="modular_config.yaml")
     print(config.get_config())
-    OmegaConf.save(config.get_config(), str(config._config_dir) + "/output.yaml")
+    config.save_to_yaml("output.yaml")
