@@ -30,6 +30,9 @@ class MasterComponent(SimulationComponent):
         )
 
     def update_progress_bar(self, finished=False):
+        if self._pbar is None:
+            return
+
         if finished:
             # ensure that progressbar ends at 100%
             self._pbar.update((1 - self._prev_progress) * 100)
@@ -37,8 +40,7 @@ class MasterComponent(SimulationComponent):
             self._pbar.close()
             return
 
-        progress = min([self.get_progress(), self._mapper.get_progress()])
-        progress = progress if progress <= 1 else 1
+        progress = min(max(0, min([self.get_progress(), self._mapper.get_progress()])), 1)
         if (progress - self._prev_progress) * 100 >= 1:
             self._pbar.update(round((progress - self._prev_progress) * 100, 4))
             self._prev_progress = progress
