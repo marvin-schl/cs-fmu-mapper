@@ -1,6 +1,7 @@
+import time
+
 from cs_fmu_mapper.components.master_component import MasterComponent
 from tqdm import tqdm
-import time
 
 
 class StandaloneSimulationMaster(MasterComponent):
@@ -10,7 +11,6 @@ class StandaloneSimulationMaster(MasterComponent):
     def __init__(self, config, name) -> None:
         super().__init__(config, name)
         self._tend = None
-        self._last_sleep = 0
         if "tend" in self._config.keys():
             self._tend = self._config["tend"]
             self._is_finished = False
@@ -24,14 +24,10 @@ class StandaloneSimulationMaster(MasterComponent):
 
                 await self.do_step(None, None)
 
-                if self._t - self._last_sleep > 1:
-                    self._last_sleep = self._t
-
                 if self._tend is not None:
                     self._progress = self.get_time() / self._tend
 
                 if self._tend is not None and self.get_time() >= self._tend:
                     self._is_finished = True
-                    
 
         await self.finalize()
