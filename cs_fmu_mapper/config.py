@@ -58,7 +58,7 @@ class ConfigurationBuilder:
     def _handle_modular_config(self, config_file_path: Union[str, Path]):
         for component, config_names in self._settings_config.Components.items():
             self._load_component_configs(component, config_names)
-        self._merge_config(Path(config_file_path))  # Apply overrides
+        self._merge_config(config_file_path)  # Apply overrides
         # to prevent overwriting of settings_config injections, merge them with the config
         self._config = OmegaConf.merge(self._config, self._settings_config)
         if self._config_injections:
@@ -79,7 +79,11 @@ class ConfigurationBuilder:
     def _handle_injections(
         self, config: DictConfig | ListConfig, injections: dict[str, Any]
     ) -> DictConfig | ListConfig:
-        return OmegaConf.merge(config, OmegaConf.create(injections))
+        return OmegaConf.merge(
+            config,
+            OmegaConf.create(injections),
+            list_merge_mode=ListMergeMode.EXTEND_UNIQUE,
+        )
 
     def remove_prefix(self, var: str, index: int = 2) -> str:
         """
