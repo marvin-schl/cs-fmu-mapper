@@ -42,19 +42,81 @@ Besides the component configuration, there is a `Mapping` section where the Mapp
 
 If there is a `plc` component configured the `plc` will be the simulation master and will trigger each simulation step. If there is no `plc` configured the software will simulate standalone with the configured step size `timeStepPerCycle` configured in the `Mapping` section. If every component signalizes that it is finished then every component will be notified that the simulation is finished. In standalone mode, the simulation will then finalize itself. In `plc` master mode the `plc` should react accordingly and should initiate the termination of the program.
 
-### Modular Configurations
+### ConfigurationBuilder
+
+The `ConfigurationBuilder` class takes the following arguments:
+- `config_file_path`: Absolute or relative path to the configuration file.
+- `module_dir`: Absolute or relative path to the modular config files.
+- `settings_injections`: (optional) Additional dictionary to merge with the settings config (only relevant for modular configs, ignored otherwise).
+- `config_injections`: (optional) Additional dictionary to merge with the config (for modular configs after the imports are done and before generating the mappings).
+
+#### Modular Configs
 
 Modular configurations allow for a more flexible and scalable configuration of simulations. Instead of defining all components in a single file, you can split the configuration into multiple files and directories. This approach enhances reusability and maintainability of the configuration.
 
 An Example for a modular configuration is given [here](example/configs/modular_config.yaml). Modular configurations are enabled by setting the `modular_config` flag to `true`. Otherwise the configuration is treated as a full config.
 
+The modular config is technically split into two parts by the `# END_COMPONENT_DEFINITIONS` tag:
+1. The 'settings' config which contains all the components that are used to build the full config. Must contain a `Components` key.
+2. Optional overrides for the components defined in the settings config.
 
+The modular configs that are imported from the `Components` section can also be [jinja2 templates](https://jinja.palletsprojects.com/en/2.10.x/templates/). This allows for a high degree of flexibility as the components can be parametrized. For example the `inputVar` and `outputVar` can be transformed from other component's `outputVar` and `inputVar` respectively. For example:
+
+```yaml
+# modular_config.yaml
+...
+# END_COMPONENT_DEFINITIONS
+Algorithm:
+  inputVar:
+    {{ transform_vars(Model.outputVar, prefix='algo', direction='in') }}
+  outputVar:
+    {{ transform_vars(Model.inputVar, prefix='algo', direction='out') }}
+```
+
+```yaml
+# model.yaml
+Model:
+  inputVar:
+    model.in.u:
+      nodeID: u
+  outputVar:
+    model.out.y:
+      nodeID: y
+```
+
+The full config will then look like this:
+
+```yaml
+# full_config.yaml
+...
+Model:
+  inputVar:
+    model.in.u:
+      nodeID: u
+  outputVar:
+    model.out.y:
+      nodeID: y
+
+Algorithm:
+  inputVar:
+    algo.in.y:
+      nodeID: y 
+  outputVar:
+    algo.out.u:
+      nodeID: u
+...
+```
 ## Usage
 
 The example can be executed via the following command:
 
 ```bash
-> $ python main.py -c example/config.yaml
+> $ python main.py -c example/configs/config.yaml
+```
+Or with a [modular config](example/configs/modular_config.yaml):
+
+```bash
+> $ python main.py -c example/configs/modular_config.yaml
 ```
 
 ## Implementing new Components
