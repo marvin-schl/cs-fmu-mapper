@@ -1,7 +1,7 @@
 Master:
   type: standalone-master
   timeStepPerCycle: 0.01
- # tend: 10
+  # tend: 10
 
 ############################################################################################################################################################################################################################################
 # FMU Components can be defined by specifying the type as fmu. Available backend options are 'pyfmi' and 'fmpy' to specify which fmi library python should use to interact with the FMU.                                                   #
@@ -11,7 +11,7 @@ Master:
 # nodeIDs of each inputVar/outputVar specify access path of the variable inside the FMU                                                                                                                                                    #
 ############################################################################################################################################################################################################################################
 Model:
-  type: fmu-pyfmi #or fmu-fmpy
+  type: fmu-fmpy # fmu-pyfmi or fmu-fmpy
   path: example/fmu/
   stepSize: 0.01
   inputVar:

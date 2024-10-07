@@ -1,2 +1,2 @@
 Model:
-  type: fmu-pyfmi
+  type: fmu-fmpy
