@@ -13,7 +13,7 @@ Master:
 Model:
   type: fmu-pyfmi #or fmu-fmpy
   path: example/fmu/
-  numberOfStepsPerCycle: 1
+  stepSize: 0.01
   inputVar:
     model.in.u:
       init: 0

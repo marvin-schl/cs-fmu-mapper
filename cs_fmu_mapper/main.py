@@ -1,15 +1,17 @@
 #!/usr/bin/python
-from cs_fmu_mapper.opcua_fmu_mapper import OPCUAFMUMapper
-from cs_fmu_mapper.component_factory import ComponentFactory
+import argparse
 import asyncio
 import json
-import argparse
 import logging
-from contextlib import suppress
-import yaml
-import sys
 import os
+import sys
+from pathlib import Path
+from contextlib import suppress
+
+import yaml
+from cs_fmu_mapper.component_factory import ComponentFactory
 from cs_fmu_mapper.config import ConfigurationBuilder
+from cs_fmu_mapper.opcua_fmu_mapper import OPCUAFMUMapper
 
 os.environ["FOR_DISABLE_CONSOLE_CTRL_HANDLER"] = "1"
 
@@ -24,8 +26,6 @@ async def kill_tasks():
         with suppress(asyncio.CancelledError):
             await task
 
-
-print(os.getcwd())
 
 # setup logging
 logging.basicConfig(
@@ -43,24 +43,14 @@ parser.add_argument(
     "--config_path",
     help="Path to config file which defines OPCUA server information, node mapping and optionally Modelica simulation setup.",
     type=str,
-    default="config.yaml",
-)
-parser.add_argument(
-    "-b",
-    "--use_config_builder",
-    help="Set this flag to use config builder.",
-    action="store_true",
-    default=False,
+    default=Path(__file__).parent.parent / "example" / "configs" / "config.yaml",
 )
 
 args = parser.parse_args()
 
 logger.info("Reading configuration file...")
-if args.use_config_builder:
-    config = ConfigurationBuilder(config_file_path=args.config_path).get_config()
-else:
-    with open(args.config_path, "r") as file:
-        config = yaml.safe_load(file)
+
+config = ConfigurationBuilder(config_file_path=args.config_path).get_config()
 
 logger.info("Creating PLCClient, FMU Simualation and Mapper Instance...")
 master = ComponentFactory().createComponents(config)
