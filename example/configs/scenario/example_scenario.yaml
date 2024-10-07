@@ -1,6 +1,7 @@
 Scenario:
   type: scenario
-  path:  example/scenario/
+  path:
+    - example/scenario/
   outputVar:
     scen.out.u:
       init: 0
