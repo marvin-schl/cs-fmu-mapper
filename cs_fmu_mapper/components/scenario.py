@@ -1,4 +1,6 @@
+import importlib.util
 import os
+from abc import ABC, abstractmethod
 
 import pandas as pd
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
@@ -6,42 +8,73 @@ from cs_fmu_mapper.utils import chooseFile
 from tqdm import tqdm
 
 
-class Scenario(SimulationComponent):
+class ScenarioBase(ABC):
+    @abstractmethod
+    def generate_schedule(self, **kwargs):
+        pass
 
+
+class Scenario(SimulationComponent):
     type = "scenario"
 
     def __init__(self, config, name):
         super(Scenario, self).__init__(config, name)
         self._scenarios = []
-        self._load_scenarios(config["path"])
+        self._load_scenarios(config["path"], config.get("parameters", {}))
 
         self._is_finished = False
         self._progress = 0
         self._final_time = self._calculate_final_time()
         self._log.info(f"Final time of Scenario is: {self._final_time}s")
 
-    def _load_scenarios(self, paths):
+    def _load_scenarios(self, paths, params):
         if isinstance(paths, str):
             paths = [paths]
 
         for path in paths:
             self._log.info(f"Loading scenario from: {path}")
-            if os.path.exists(path):
-                if os.path.isfile(path):
-                    scenario = pd.read_csv(path)
-                elif os.path.isdir(path):
-                    file = chooseFile(
-                        path,
-                        "Scenario path is a directory. Please choose a Scenario file:",
-                    )
-                    scenario = pd.read_csv(os.path.join(path, file))
+            if path.endswith(".py"):
+                params = params.get(path, {})
+                scenario = self._load_python_scenario(path, params)
             else:
-                raise FileNotFoundError(f"Scenario file not found at: {path}")
+                scenario = self._load_csv_scenario(path)
 
             assert (
                 "t" in scenario.columns
-            ), f"Scenario file {path} must contain a column 't'."
+            ), f"Scenario {path} must contain a column 't'."
             self._scenarios.append(scenario)
+
+    def _load_python_scenario(self, path, params):
+        spec = importlib.util.spec_from_file_location("scenario_module", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        scenario_classes = [
+            cls
+            for cls in module.__dict__.values()
+            if isinstance(cls, type)
+            and issubclass(cls, ScenarioBase)
+            and cls != ScenarioBase
+        ]
+        if not scenario_classes:
+            raise ValueError(f"No ScenarioBase subclass found in {path}")
+
+        scenario_class = scenario_classes[0]
+        scenario_instance = scenario_class()
+        return scenario_instance.generate_schedule(**params)
+
+    def _load_csv_scenario(self, path):
+        if os.path.exists(path):
+            if os.path.isfile(path):
+                return pd.read_csv(path)
+            elif os.path.isdir(path):
+                file = chooseFile(
+                    path,
+                    "Scenario path is a directory. Please choose a Scenario file:",
+                )
+                return pd.read_csv(os.path.join(path, file))
+        else:
+            raise FileNotFoundError(f"Scenario file not found at: {path}")
 
     def _calculate_final_time(self):
         return max(
