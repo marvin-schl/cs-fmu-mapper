@@ -81,6 +81,7 @@ class SimulationComponent(ABC):
         self._output_values = new_val
 
     def get_node_by_name(self, name):
+        """Get the nodeID for the given variable name."""
         if self._input_values and (name in self._config["inputVar"].keys()):
             return self._config["inputVar"][name]["nodeID"]
         elif self._output_values and (name in self._config["outputVar"].keys()):
@@ -103,6 +104,7 @@ class SimulationComponent(ABC):
         pass
 
     def contains(self, name):
+        """Check if the component contains a value for the given variable name."""
         if not self._input_values and not self._output_values:
             return False
 
