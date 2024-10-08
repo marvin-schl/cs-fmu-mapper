@@ -14,7 +14,6 @@ class Scenario(SimulationComponent):
         super(Scenario, self).__init__(config, name)
         self._scenarios = []
         self._load_scenarios(config["path"])
-
         self._is_finished = False
         self._progress = 0
         self._final_time = self._calculate_final_time()
@@ -34,13 +33,14 @@ class Scenario(SimulationComponent):
                         path,
                         "Scenario path is a directory. Please choose a Scenario file:",
                     )
-                    scenario = pd.read_csv(os.path.join(path, file))
+                    scenario = pd.read_csv(os.path.join(path, file), delimiter=",")
             else:
                 raise FileNotFoundError(f"Scenario file not found at: {path}")
 
             assert (
                 "t" in scenario.columns
-            ), f"Scenario file {path} must contain a column 't'."
+            ),  f"Scenario file must contain a column 't'. Columns found: {str(
+            self._scenario.columns)}. Make sure to use comma as delimiter."
             self._scenarios.append(scenario)
 
     def _calculate_final_time(self):
