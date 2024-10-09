@@ -39,8 +39,7 @@ class Scenario(SimulationComponent):
 
             assert (
                 "t" in scenario.columns
-            ),  f"Scenario file must contain a column 't'. Columns found: {str(
-            self._scenario.columns)}. Make sure to use comma as delimiter."
+            ),  f"Scenario file must contain a column 't'. Columns found: {str(self._scenario.columns)}. Make sure to use comma as delimiter."
             self._scenarios.append(scenario)
 
     def _calculate_final_time(self):
