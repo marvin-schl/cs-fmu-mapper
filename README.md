@@ -47,8 +47,8 @@ If there is a `plc` component configured the `plc` will be the simulation master
 The `ConfigurationBuilder` class takes the following arguments:
 - `config_file_path`: Absolute or relative path to the configuration file.
 - `module_dir`: Absolute or relative path to the modular config files.
-- `settings_injections`: (optional) Additional dictionary to merge with the settings config (only relevant for modular configs, ignored otherwise).
-- `config_injections`: (optional) Additional dictionary to merge with the config (for modular configs after the imports are done and before generating the mappings).
+- `pre_build_injections`: (optional) Additional dictionary to inject before the build process.
+- `post_build_injections`: (optional) Additional dictionary to inject after the build process.
 
 #### Modular Configs
 

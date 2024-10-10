@@ -33,8 +33,8 @@ class ConfigurationBuilder:
         ### Arguments:
         - config_file_path: Relative or absolute path to the configuration file (Modular or Full config)
         - module_dir: For modular configs: Directory containing the modular config files.
-        - settings_injections: Additional dictionary to inject into the settings config.
-        - config_injections: Additional dictionary to inject into the config before generating the mappings.
+        - pre_build_injections: Additional dictionary to inject before the build process.
+        - post_build_injections: Additional dictionary to inject after the build process.
         """
         self._config_file_path = Path(config_file_path).resolve()
         self._module_dir = Path(module_dir).resolve()
