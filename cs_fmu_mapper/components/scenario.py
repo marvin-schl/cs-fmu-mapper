@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from cs_fmu_mapper.utils import chooseFile
-from tqdm import tqdm
 
 
 class ScenarioBase(ABC):

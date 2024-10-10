@@ -24,8 +24,8 @@ class ConfigurationBuilder:
         module_dir: Union[str, Path] = os.path.join(
             Path(__file__).parent.parent, "example", "configs"
         ),
-        settings_injections: dict[str, Any] = {},
-        config_injections: dict[str, Any] = {},
+        pre_build_injections: dict[str, Any] = {},
+        post_build_injections: dict[str, Any] = {},
     ):
         """
         Initialize the ConfigurationBuilder.
@@ -39,8 +39,8 @@ class ConfigurationBuilder:
         self._config_file_path = Path(config_file_path).resolve()
         self._module_dir = Path(module_dir).resolve()
 
-        self._settings_injections = settings_injections
-        self._config_injections = config_injections
+        self._pre_build_injections = pre_build_injections
+        self._post_build_injections = post_build_injections
 
         self._config = self._load_initial_config(self._config_file_path)
 
@@ -54,7 +54,7 @@ class ConfigurationBuilder:
 
         if self._use_modular_config:
             self._settings_config = self._handle_injections(
-                self._settings_config, self._settings_injections
+                self._settings_config, self._pre_build_injections
             )
             self._handle_modular_config(self._config_file_path)
 
@@ -68,9 +68,9 @@ class ConfigurationBuilder:
         self._merge_config(config_file_path)  # Apply overrides
         # to prevent overwriting of settings_config injections, merge them with the config
         self._config = OmegaConf.merge(self._config, self._settings_config)
-        if self._config_injections:
+        if self._post_build_injections:
             self._config = self._handle_injections(
-                self._config, self._config_injections
+                self._config, self._post_build_injections
             )
         self._generate_mappings()
 
