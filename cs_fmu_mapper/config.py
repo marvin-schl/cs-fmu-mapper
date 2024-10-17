@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import IO, Any, Literal, Union
 
 import jinja2
+import yaml
 from jinja2 import Environment, FileSystemLoader
 from omegaconf import DictConfig, ListConfig, ListMergeMode, OmegaConf
 from omegaconf.errors import OmegaConfBaseException
@@ -273,6 +274,19 @@ class ConfigurationBuilder:
             context = {**self._config, "transform_vars": self.transform_vars}  # type: ignore
             template = jinja2.Template(yaml_content)
             rendered_yaml = template.render(**context)
+
+            # Parse the rendered YAML and convert any integer keys back to strings
+            parsed_yaml = yaml.safe_load(rendered_yaml)
+
+            def convert_int_keys_to_str(obj):
+                if isinstance(obj, dict):
+                    return {str(k): convert_int_keys_to_str(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_int_keys_to_str(item) for item in obj]
+                return obj
+
+            converted_yaml = convert_int_keys_to_str(parsed_yaml)
+            rendered_yaml = yaml.dump(converted_yaml)
             return OmegaConf.create(rendered_yaml)
         except FileNotFoundError:
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
