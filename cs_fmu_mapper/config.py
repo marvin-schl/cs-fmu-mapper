@@ -42,25 +42,22 @@ class ConfigurationBuilder:
 
         self._pre_build_injections = pre_build_injections
         self._post_build_injections = post_build_injections
-
         self._config = self._load_initial_config(self._config_file_path)
-
-        self._use_modular_config = self._config.setdefault("modular_config", False)
-
-        if self._use_modular_config:
-            self._settings_config = self._config
-            self._config = OmegaConf.create()
-
+        self._use_modular_config = self._config.pop("modular_config", False)
         self._env = Environment()
 
         if self._use_modular_config:
             self._settings_config = self._handle_injections(
-                self._settings_config, self._pre_build_injections
+                self._config, self._pre_build_injections
             )
+            self._config = self._settings_config.copy()
             self._handle_modular_config(self._config_file_path)
-
-        if "modular_config" in self._config:  # type: ignore
-            del self._config["modular_config"]  # type: ignore
+            if "modular_config" in self._config:
+                del self._config["modular_config"]
+        else:
+            self._config = self._handle_injections(
+                self._config, self._post_build_injections
+            )
 
     def _handle_modular_config(self, config_file_path: Union[str, Path]):
         """Handle the modular configuration by loading component configs, merging files, and generating mappings."""
