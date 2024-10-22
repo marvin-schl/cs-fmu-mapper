@@ -1,7 +1,7 @@
 Master:
   type: standalone-master
   timeStepPerCycle: 0.01
- # tend: 10
+  # tend: 10
 
 ############################################################################################################################################################################################################################################
 # FMU Components can be defined by specifying the type as fmu. Available backend options are 'pyfmi' and 'fmpy' to specify which fmi library python should use to interact with the FMU.                                                   #
@@ -67,9 +67,9 @@ Scenario:
 # contains inputs. The inputVar specifies the variables that should be logged. The entry names are arbitrary and can be chosen freely with the exception that the names should be    #
 # unique as they are used for mapping. Plots can be configured as shown. The logged raw data will be saved as csv also. The configured nodeIDs specify the column names.             #
 ######################################################################################################################################################################################
-Logger:
-  type: logger
-  path: example/results/
+Plotter:
+  type: plotter
+  outputFolder: example/results/
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
@@ -85,9 +85,10 @@ Logger:
       title: Filter Step Response
       subgrid: true #optional
       grid: true #optional
+      linewidth: 2 #optional
       vars:
-        - log.in.u
-        - log.in.y
+        - u
+        - y
       legend: #optional
         - u
         - y
@@ -99,8 +100,8 @@ Logger:
       subgrid: true #optional
       grid: true #optional
       vars:
-        - log.in.u
-      x_var: log.in.y
+        - u
+      x_var: y
       legend: #optional
         - u over y
       xlabel: Y with some \LaTeX

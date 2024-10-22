@@ -1,6 +1,6 @@
-Logger:
-  type: logger
-  path: example/results/
+Plotter:
+  type: plotter
+  outputFolder: example/results/
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
@@ -16,9 +16,10 @@ Logger:
       title: Filter Step Response
       subgrid: true #optional
       grid: true #optional
+      linewidth: 2 #optional
       vars:
-        - log.in.u
-        - log.in.y
+        - u
+        - y
       legend: #optional
         - u
         - y

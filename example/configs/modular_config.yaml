@@ -10,7 +10,7 @@ modular_config: True # Set to True if the config is a modular config. If set to 
 Components:
   model: Filter
   connection: FMU
-  logger:
+  plotter:
     - scatter_example
     - step_response
   scenario: example_scenario

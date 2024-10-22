@@ -1,8 +1,9 @@
 # from components.simulation_component import SimulationComponent
 import logging
 
-from cs_fmu_mapper.components import *
+from cs_fmu_mapper.components import SimulationComponent, MasterComponent
 from cs_fmu_mapper.opcua_fmu_mapper import OPCUAFMUMapper
+
 
 
 class ComponentFactory:
@@ -14,14 +15,13 @@ class ComponentFactory:
         self._log = logging.getLogger(self.__class__.__name__)
 
     def createComponents(
-        self, config: dict, custom_components: dict[str, str] = {}
+        self, config: dict
     ) -> MasterComponent:
         """
         Creates instances of components that inherit from the SimulationComponent and MasterComponent classes with their corresponding configuration dictionaries.
 
         Parameters:
-            config (dict): A dictionary containing the configuration for each component.
-            custom_components (dict): An optional dictionary where keys are the class names and values are importing paths to the Python files defining the custom components. Example of a custom component: {"Algorithm": "Module.submodule"} where the custom component "Algorithm" is defined in the file "submodule.py" in the "Module" directory.
+            config (dict): A dictionary containing the configuration for each component, including the "General" section with custom components.
 
         Returns:
             MasterComponent: The master component instance.
@@ -36,14 +36,12 @@ class ComponentFactory:
         self._log.debug("Master classes: " + str(master_classes))
 
         component_classes = {c.type: (c, None) for c in classes}
-        # Import custom components
-        if custom_components:
+        
+        # Import custom components from the "General" section of the config
+        if "General" in config and "customComponents" in config["General"]:
+            custom_components = config["General"]["customComponents"]
             for component_class_name, component_info in custom_components.items():
-                assert isinstance(
-                    component_info, tuple
-                ), "Custom components must be defined as a dictionary with the class name as key and a tuple with the path to the component and the input parameters (dict) as value."
-                component_path = component_info[0]
-                component_input = component_info[1]
+                component_path = component_info["pathToComponent"]
                 try:
                     # Add the custom component to the component_classes dictionary if it is a subclass of SimulationComponent
                     exec(f"from {component_path} import {component_class_name}")
@@ -52,9 +50,9 @@ class ComponentFactory:
                         raise Exception(
                             f"Component {component_class_name} is not a subclass of SimulationComponent."
                         )
-                    component_classes[component_class.type] = (
+                    component_classes[component_class.type] = (  # type: ignore
                         component_class,
-                        component_input,
+                        None,
                     )
 
                 except Exception as e:

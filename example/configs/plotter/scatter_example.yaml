@@ -1,6 +1,6 @@
-Logger:
-  type: logger
-  path: example/results/
+Plotter:
+  type: plotter
+  outputFolder: example/results/
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
@@ -17,8 +17,8 @@ Logger:
       subgrid: true #optional
       grid: true #optional
       vars:
-        - log.in.u
-      x_var: log.in.y
+        - u
+      x_var: y
       legend: #optional
         - u over y
       xlabel: Y with some \LaTeX
