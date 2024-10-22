@@ -1,17 +1,16 @@
 #!/usr/bin/python
 import argparse
 import asyncio
-import json
 import logging
 import os
 import sys
-from pathlib import Path
+import warnings
 from contextlib import suppress
+from pathlib import Path
 
-import yaml
 from cs_fmu_mapper.component_factory import ComponentFactory
 from cs_fmu_mapper.config import ConfigurationBuilder
-from cs_fmu_mapper.opcua_fmu_mapper import OPCUAFMUMapper
+from tqdm import TqdmWarning
 
 os.environ["FOR_DISABLE_CONSOLE_CTRL_HANDLER"] = "1"
 
@@ -32,6 +31,16 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  | %(name)-40s \t | %(levelname)-10s | %(message)s",
 )
+
+# set logging level for asyncua to WARNING
+logging.getLogger("asyncua.client.ua_client.UaClient").setLevel(logging.WARNING)
+logging.getLogger("asyncua.client.client").setLevel(logging.WARNING)
+logging.getLogger("asyncua.uaprotocol").setLevel(logging.WARNING)
+logging.getLogger("asyncua.client.ua_client.UASocketProtocol").setLevel(logging.WARNING)
+# ignore tqdm warnings
+warnings.filterwarnings("ignore", category=TqdmWarning)
+
+
 logger = logging.getLogger("Main")
 
 # create basic cli interface
@@ -44,6 +53,14 @@ parser.add_argument(
     help="Path to config file which defines OPCUA server information, node mapping and optionally Modelica simulation setup.",
     type=str,
     default=Path(__file__).parent.parent / "example" / "configs" / "config.yaml",
+)
+
+parser.add_argument(
+    "--module_dir",
+    "-md",
+    help="Path to the directory containing the modules.",
+    type=str,
+    default=Path(__file__).parent.parent / "example" / "configs",
 )
 
 args = parser.parse_args()
