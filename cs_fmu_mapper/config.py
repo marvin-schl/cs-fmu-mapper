@@ -6,7 +6,7 @@ from typing import IO, Any, Literal, Union
 
 import jinja2
 import yaml
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment
 from omegaconf import DictConfig, ListConfig, ListMergeMode, OmegaConf
 from omegaconf.errors import OmegaConfBaseException
 

@@ -9,7 +9,6 @@ from cs_fmu_mapper.utils import chooseFile
 from fmpy import extract, read_model_description
 from fmpy.fmi2 import FMU2Slave
 from pyfmi import load_fmu
-from pyfmi.master import Master
 
 
 class FMUSimClient(SimulationComponent):
