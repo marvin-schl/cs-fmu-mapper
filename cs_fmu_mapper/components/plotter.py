@@ -17,7 +17,7 @@ class Plotter(SimulationComponent):
         super(Plotter, self).__init__(config, name)
         self._t = []
         self._data = {}
-        self._path = config["outputFolder"]
+        self._output_path = config["outputFolder"]
         self._exclude_n_values = (
             3
             if "exclude_n_values" not in self._config
@@ -38,8 +38,8 @@ class Plotter(SimulationComponent):
 
     def save_data(self):
         df = pd.DataFrame(self._data)
-        self._log.info("Saving data to: " + self._path + "/data.csv")
-        df.to_csv(self._path + "/data.csv", index=False)
+        self._log.info("Saving data to: " + self._output_path + "/data.csv")
+        df.to_csv(self._output_path + "/data.csv", index=False)
 
     async def finalize(self):
         self._log.info("Generating Plots.")
@@ -63,11 +63,11 @@ class Plotter(SimulationComponent):
             self._data[column] = self._data[column][self._exclude_n_values :]
         # Generate plots
         if "plots" in self._config.keys():
-            if not os.path.exists(self._path):
-                os.makedirs(self._path)
+            if not os.path.exists(self._output_path):
+                os.makedirs(self._output_path)
             self.save_data()
             for plot_name, plot_config in self._config["plots"].items():
-                plot_config["path"] = self._path
+                plot_config["path"] = self._output_path
                 if "type" in plot_config.keys():
                     plot = PlotFactory.instantiate_plot(
                         plot_config["type"], self._data, plot_config
@@ -76,7 +76,7 @@ class Plotter(SimulationComponent):
                     self._log.info(f"Plot '{plot_name}' generated.")
                 else:
                     raise ValueError(f"Plot type not specified for plot {plot_name}")
-        self._log.info(f"Plots generated. View them at {self._path}")
+        self._log.info(f"Plots generated. View them at {self._output_path}")
         return True
 
 
