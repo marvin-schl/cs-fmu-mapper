@@ -20,10 +20,32 @@ class Scheduler:
         self.column_prefix = column_prefix
 
     def generate_schedule(self, **kwargs) -> pd.DataFrame:
-        times = kwargs.get("times", [])
-        duration = kwargs.get("duration", 2 * 86400)  # 48 hours in seconds
-        items = kwargs.get("items", self.default_items)
-        patterns = kwargs.get("patterns", self.default_patterns)
+        """
+        Generate a schedule based on the specified parameters.
+
+        ### Parameters:
+        - `times` (List[int]): The times (hours) at which the pattern should be set. If not provided, the pattern will be repeated evenly over 24 hours and repeated over the duration.
+        - `duration` (int): The duration of the schedule in seconds.
+        - `items` (List[str]): The items to generate a schedule for.
+        - `patterns` (Dict[str, List[int]]): The patterns to use for each item. If `times` is provided, the elements of this parameter must be of same length as `times`.
+
+        ### Returns:
+        - `pd.DataFrame`: A DataFrame containing the schedule.
+
+        ### Examples:
+        - `generate_schedule(times=[0, 8, 16], duration=26 * 3600, items=["item1", "item2"], patterns={"item1": [1, 0, 1], "item2": [0, 1, 0]})`
+        This will generate a schedule for `item1` and `item2` with the pattern `[1, 0, 1]` and `[0, 1, 0]` respectively, set at 0:00, 8:00 and 16:00.
+
+        - `generate_schedule(duration=48 * 3600, items=["item1", "item2"], patterns={"item1": [1, 0, 1], "item2": [0, 1, 0]})`
+        This will generate a schedule for `item1` and `item2` with the pattern `[1, 0, 1]` and `[0, 1, 0]` respectively, streched evenly over 24 hours and repeated over 2 days (48 hours).
+        """
+        times = kwargs.setdefault("times", None)
+        duration = kwargs.setdefault("duration", 4 * 86400)
+        items = kwargs.setdefault("items", self.default_items)
+        patterns = kwargs.setdefault("patterns", self.default_patterns)
+
+        if times and not all([len(times) == len(patterns[item]) for item in items]):
+            raise ValueError("Length of `times` and `patterns` must be the same.")
 
         t = np.arange(0, duration + 1, 3600)  # Hourly data points
         df = pd.DataFrame({"t": t})
@@ -33,7 +55,7 @@ class Scheduler:
             values = self._generate_values(times, pattern, duration, len(t))
             df[f"{self.column_prefix}{item}"] = values
 
-        return df
+        return df, kwargs
 
     @staticmethod
     def _get_pattern(
