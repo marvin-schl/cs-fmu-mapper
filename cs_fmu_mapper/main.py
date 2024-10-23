@@ -16,15 +16,16 @@ os.environ["FOR_DISABLE_CONSOLE_CTRL_HANDLER"] = "1"
 
 
 class CSFMUMapper:
-    def __init__(self, config_path, module_dir):
+    def __init__(self, config_path, module_dir, debug=False):
         self.config_path = config_path
         self.module_dir = module_dir
+        self.debug = debug
         self.setup_logging()
         self.logger = logging.getLogger("CSFMUMapper")
 
     def setup_logging(self):
         logging.basicConfig(
-            level=logging.INFO,
+            level=logging.DEBUG if self.debug else logging.INFO,
             format="%(asctime)s  | %(name)-40s \t | %(levelname)-10s | %(message)s",
         )
 
@@ -54,7 +55,10 @@ class CSFMUMapper:
         self.logger.info("Reading configuration file...")
         config = ConfigurationBuilder(
             config_file_path=self.config_path, module_dir=self.module_dir
-        ).get_config()
+        )
+        if self.debug:
+            config.save_to_yaml("debug_full_config.yaml")
+        config = config.get_config()
 
         self.logger.info("Creating PLCClient, FMU Simulation and Mapper Instance...")
         master = ComponentFactory().createComponents(config)
@@ -86,6 +90,11 @@ if __name__ == "__main__":
         help="Path to the directory containing modular config files. Required if using a modular config.",
         type=str,
         default=Path(__file__).parent.parent / "example" / "configs",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Save full config to debug_full_config.yaml and set logging mode to DEBUG",
     )
 
     args = parser.parse_args()
