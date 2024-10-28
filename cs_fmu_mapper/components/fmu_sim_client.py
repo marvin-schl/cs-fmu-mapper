@@ -189,10 +189,14 @@ class FMPySimClient(FMUSimClient):
         match self._vrs[key]["type"]:
             case "Real":
                     self._model.setReal([self._vrs[key]["valueReference"]], [float(value)])
+            case "Float32":    
+                    self._model.setFloat32([self._vrs[key]["valueReference"]], [float(value)])
             case "Float64":    
                     self._model.setFloat64([self._vrs[key]["valueReference"]], [float(value)])
             case "Integer":
                     self._model.setInteger([self._vrs[key]["valueReference"]], [int(value)])
+            case "Int32":
+                    self._model.setInt32([self._vrs[key]["valueReference"]], [int(value)])
             case "Int64":
                     self._model.setInt64([self._vrs[key]["valueReference"]], [int(value)])
             case "Boolean":
@@ -225,10 +229,14 @@ class FMPySimClient(FMUSimClient):
         match self._vrs[key]["type"]:
             case "Real":
                     return self._model.getReal([self._vrs[key]["valueReference"]])[0]
+            case "Float32":
+                return self._model.getFloat32([self._vrs[key]["valueReference"]])[0]
             case "Float64":
                 return self._model.getFloat64([self._vrs[key]["valueReference"]])[0]
             case "Integer":
                     return self._model.getInteger([self._vrs[key]["valueReference"]])[0]
+            case "Int32":
+                    return self._model.getInt32([self._vrs[key]["valueReference"]])[0]
             case "Int64":
                     return self._model.getInt64([self._vrs[key]["valueReference"]])[0]
             case "Boolean":
