@@ -19,6 +19,7 @@ class Plotter(SimulationComponent):
         self._t = []
         self._data = {}
         self._output_path = config["outputFolder"]
+        self._plots_path = self._output_path + "/plots"
         self._exclude_n_values = (
             3
             if "exclude_n_values" not in self._config
@@ -64,8 +65,8 @@ class Plotter(SimulationComponent):
             self._data[column] = self._data[column][self._exclude_n_values :]
         # Generate plots
         if "plots" in self._config.keys():
-            if not os.path.exists(self._output_path):
-                os.makedirs(self._output_path)
+            if not os.path.exists(self._plots_path):
+                os.makedirs(self._plots_path)
             self.save_data()
 
             # Create PDF for merged plots if specified
@@ -76,7 +77,7 @@ class Plotter(SimulationComponent):
                 )
 
             for plot_name, plot_config in self._config["plots"].items():
-                plot_config["path"] = self._output_path
+                plot_config["path"] = self._plots_path
                 plot_config["plot_name"] = plot_name
                 plot_config["merge_pdf"] = merge_pdf
                 if "type" in plot_config.keys():
