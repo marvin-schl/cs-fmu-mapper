@@ -1,0 +1,8 @@
+Scenario:
+  type: scenario
+  path:
+    - example/scenario/scenario1.csv
+  outputVar:
+    scen.out.u:
+      init: 0
+      nodeID: u

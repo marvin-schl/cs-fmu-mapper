@@ -1,7 +1,7 @@
 Scenario:
   type: scenario
   path:
-    - example/scenario/
+    - example/scenario/scenario2.csv
   outputVar:
     scen.out.u:
       init: 0

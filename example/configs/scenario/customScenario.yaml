@@ -1,0 +1,15 @@
+Scenario:
+  type: scenario
+  path:
+    - example/scenario/CustomScenario.py
+  parameters:
+    example/scenario/CustomScenario.py:
+      duration: 120 # in seconds
+      times: [0, 15, 30, 45] # in seconds
+      time_unit: seconds
+      patterns:
+        "1": [1, 2, 3, 4]
+  outputVar:
+    scen.out.u:
+      init: 0
+      nodeID: u
