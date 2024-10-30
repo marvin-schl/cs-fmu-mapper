@@ -4,10 +4,10 @@ Plotter:
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
-    log.in.y:
+    plot.in.y:
       init: 0
       nodeID: y
-    log.in.u:
+    plot.in.u:
       init: 0
       nodeID: u
   plots:

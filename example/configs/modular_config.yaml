@@ -7,13 +7,18 @@ modular_config: True # Set to True if the config is a modular config. If set to 
 # Example: model: Filter loads 'Filter.yaml' from 'config_directory/model/' subdirectory.
 # Example: logger: [scatter_example, step_response] loads files in that order from 'config_directory/logger/'.
 # Note: The loading order of components is crucial for managing dependencies between components.
+
+General:
+  outputFolder: example/results/
+
 Components:
   model: Filter
   connection: FMU
   plotter:
     - scatter_example
     - step_response
-  scenario: example_scenario
+  scenario:
+    - scenario1
   mapping: mapping
 
 # END_COMPONENT_DEFINITIONS
@@ -25,3 +30,9 @@ Master:
 
 Model:
   stepSize: 0.01
+
+Plotter:
+  outputFolder: {{ General.outputFolder }}
+
+Scenario:
+  outputFolder: {{ General.outputFolder }}
