@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from matplotlib.axes import Axes
+from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
 
@@ -66,8 +67,18 @@ class Plotter(SimulationComponent):
             if not os.path.exists(self._output_path):
                 os.makedirs(self._output_path)
             self.save_data()
+
+            # Create PDF for merged plots if specified
+            merge_pdf = None
+            if "mergePlot" in self._config and self._config["mergePlot"]:
+                merge_pdf = PdfPages(
+                    os.path.join(self._output_path, "merged_plots.pdf")
+                )
+
             for plot_name, plot_config in self._config["plots"].items():
                 plot_config["path"] = self._output_path
+                plot_config["plot_name"] = plot_name
+                plot_config["merge_pdf"] = merge_pdf
                 if "type" in plot_config.keys():
                     plot = PlotFactory.instantiate_plot(
                         plot_config["type"], self._data, plot_config
@@ -76,8 +87,51 @@ class Plotter(SimulationComponent):
                     self._log.info(f"Plot '{plot_name}' generated.")
                 else:
                     raise ValueError(f"Plot type not specified for plot {plot_name}")
+
+            if merge_pdf is not None:
+                merge_pdf.close()
+                self._log.info(
+                    f"Merged plots saved to {os.path.join(self._output_path, 'merged_plots.pdf')}"
+                )
+
         self._log.info(f"Plots generated. View them at {self._output_path}")
         return True
+
+
+def convert_units(data: dict, vars: list, unit_config: dict):
+    """Convert units based on the provided configuration"""
+    from_unit = unit_config.get("from", "")
+    to_unit = unit_config.get("to", "")
+
+    if from_unit == to_unit:
+        return data
+
+    conversion_factor = 1
+    conversion_offset = 0
+
+    if from_unit == "s" and to_unit == "h":
+        conversion_factor = 1 / 3600
+    elif from_unit == "s" and to_unit == "d":
+        conversion_factor = 1 / 86400
+    elif from_unit == "C" and to_unit == "K":
+        conversion_offset = 273.15
+    elif from_unit == "K" and to_unit == "C":
+        conversion_offset = -273.15
+    elif from_unit == "W" and to_unit == "kW":
+        conversion_factor = 1 / 1000
+    elif from_unit == "W" and to_unit == "MW":
+        conversion_factor = 1 / 1000000
+    elif from_unit == "kW" and to_unit == "W":
+        conversion_factor = 1000
+    elif from_unit == "MW" and to_unit == "W":
+        conversion_factor = 1000000
+
+    for var in vars:
+        data[var] = [
+            (value + conversion_offset) * conversion_factor for value in data[var]
+        ]
+
+    return data
 
 
 class BasePlot(ABC):
@@ -92,40 +146,6 @@ class BasePlot(ABC):
     @abstractmethod
     def generate(self):
         pass
-
-    def convert_units(self, vars: list, unit_config: dict):
-        """Convert units based on the provided configuration"""
-        from_unit = unit_config.get("from", "")
-        to_unit = unit_config.get("to", "")
-
-        if from_unit == to_unit:
-            return
-
-        conversion_factor = 1
-        conversion_offset = 0
-
-        if from_unit == "s" and to_unit == "h":
-            conversion_factor = 1 / 3600
-        elif from_unit == "s" and to_unit == "d":
-            conversion_factor = 1 / 86400
-        elif from_unit == "C" and to_unit == "K":
-            conversion_offset = 273.15
-        elif from_unit == "K" and to_unit == "C":
-            conversion_offset = -273.15
-        elif from_unit == "W" and to_unit == "kW":
-            conversion_factor = 1 / 1000
-        elif from_unit == "W" and to_unit == "MW":
-            conversion_factor = 1 / 1000000
-        elif from_unit == "kW" and to_unit == "W":
-            conversion_factor = 1000
-        elif from_unit == "MW" and to_unit == "W":
-            conversion_factor = 1000000
-
-        for var in vars:
-            self._data[var] = [
-                (value + conversion_offset) * conversion_factor
-                for value in self._data[var]
-            ]
 
     def finalize(self, fig: Figure, ax: Axes, filetypes: list = ["pdf"]):
         """Finalize the plot and save it to the specified path"""
@@ -143,6 +163,12 @@ class BasePlot(ABC):
             ax.grid(
                 which="minor", linestyle=":", linewidth="0.5", color="black", alpha=0.25
             )
+
+        # Save to merged PDF if specified
+        if "merge_pdf" in self._config and self._config["merge_pdf"] is not None:
+            self._config["merge_pdf"].savefig(fig)
+
+        # Save individual files
         for filetype in filetypes:
             fig.savefig(
                 self._config["path"]
@@ -163,9 +189,11 @@ class TimeSeriesPlot(BasePlot):
     def generate(self):
         fig, ax = plt.subplots(figsize=(20, 5))
         if "xUnit" in self._config.keys():
-            self.convert_units(["time"], self._config["xUnit"])
+            self._data = convert_units(self._data, ["time"], self._config["xUnit"])
         if "yUnit" in self._config.keys():
-            self.convert_units(self._config["vars"], self._config["yUnit"])
+            self._data = convert_units(
+                self._data, self._config["vars"], self._config["yUnit"]
+            )
         for i, var in enumerate(self._config["vars"]):
             ax.plot(
                 self._data["time"],
@@ -193,7 +221,9 @@ class TimeSeriesPlot(BasePlot):
             suffix = self._config["textfield"].get("suffix", "")
 
             if "unit" in self._config["textfield"]:
-                self.convert_units([var], self._config["textfield"]["unit"])
+                self._data = convert_units(
+                    self._data, [var], self._config["textfield"]["unit"]
+                )
 
             value = self._data[var][-1] if var in self._data else ""
 
@@ -225,9 +255,11 @@ class ScatterPlot(BasePlot):
         x_values = self._data[x_var]
 
         if "xUnit" in self._config.keys():
-            self.convert_units([x_var], self._config["xUnit"])
+            self._data = convert_units(self._data, [x_var], self._config["xUnit"])
         if "yUnit" in self._config.keys():
-            self.convert_units(self._config["vars"], self._config["yUnit"])
+            self._data = convert_units(
+                self._data, self._config["vars"], self._config["yUnit"]
+            )
 
         for i, var in enumerate(self._config["vars"]):
             ax.plot(
