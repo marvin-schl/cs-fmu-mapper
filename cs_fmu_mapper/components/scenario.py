@@ -40,6 +40,7 @@ class Scenario(SimulationComponent):
             paths = [paths]
 
         for path in paths:
+            scenario_params = {}
             self._log.info(f"Loading scenario from: {path}")
             if path.endswith(".py"):
                 scenario, scenario_params = self._load_python_scenario(
@@ -52,7 +53,8 @@ class Scenario(SimulationComponent):
                 "t" in scenario.columns
             ), f"Scenario {path} must contain a column 't'."
             scenarios.append(scenario)
-            all_scenario_params[path] = scenario_params
+            if scenario_params:
+                all_scenario_params[path] = scenario_params
 
         # merge all scenarios into one dataframe
         merged_scenario = pd.DataFrame()
@@ -137,7 +139,7 @@ class Scenario(SimulationComponent):
         except Exception as e:
             self._log.debug(e)
             self._is_finished = True
-            self._log.info(f"Scenario finished at t={t}")
+            self._log.debug(f"Scenario finished at t={t}")
 
     async def finalize(self):
         return True
