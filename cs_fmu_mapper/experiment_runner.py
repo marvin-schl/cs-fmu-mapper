@@ -8,6 +8,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
+import argparse
 
 import yaml
 from cs_fmu_mapper.config import ConfigurationBuilder
@@ -188,19 +189,72 @@ class ExperimentRunner:
 
 
 if __name__ == "__main__":
-    # Example usage as a script
-    runner = ExperimentRunner(
-        base_config=Path(__file__).parent.parent
-        / "example"
-        / "configs"
-        / "experiments"
-        / "base_config.yaml",
-        module_dir=Path(__file__).parent.parent / "example" / "configs",
-        experiments_dir=Path(__file__).parent.parent
-        / "example"
-        / "configs"
-        / "experiments",
-        debug=False,
+    parser = argparse.ArgumentParser(description="Run experiments defined in YAML configuration files")
+    parser.add_argument(
+        "-bc",
+        "--base_config",
+        type=Path,
+        default=Path(__file__).parent.parent / "example" / "configs" / "experiments" / "base_config.yaml",
+        help="Path to the base configuration file",
+    )
+    parser.add_argument(
+        "-md",
+        "--module_dir", 
+        type=Path,
+        default=Path(__file__).parent.parent / "example" / "configs",
+        help="Path to the directory containing module configurations",
+    )
+    parser.add_argument(
+        "-ed",
+        "--experiments_dir",
+        type=Path,
+        default=Path(__file__).parent.parent / "example" / "configs" / "experiments",
+        help="Path to the directory containing experiment files",
+    )
+    parser.add_argument(
+        "-ef",
+        "--experiments_file",
+        type=str,
+        default="experiments.yaml",
+        help="Name of the experiments definition file",
+    )
+    parser.add_argument(
+        "-rf",
+        "--run_file",
+        type=str,
+        default="run.yaml", 
+        help="Name of the run configuration file",
+    )
+    parser.add_argument(
+        "-td",
+        "--temp_dir",
+        type=str,
+        default="temp",
+        help="Name of temporary directory for generated configs",
+    )
+    parser.add_argument(
+        "-wd",
+        "--working_dir",
+        type=Path,
+        help="Working directory for experiment execution",
+    )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Enable debug logging",
     )
 
-    asyncio.run(runner.run(working_dir=Path(__file__).parent.parent))
+    args = parser.parse_args()
+
+    runner = ExperimentRunner(
+        base_config=args.base_config,
+        module_dir=args.module_dir,
+        experiments_dir=args.experiments_dir,
+        experiments_file=args.experiments_file,
+        run_file=args.run_file,
+        temp_dir=args.temp_dir,
+        debug=args.debug,
+    )
+
+    asyncio.run(runner.run(working_dir=args.working_dir))
