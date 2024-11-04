@@ -11,7 +11,7 @@ Master:
 # nodeIDs of each inputVar/outputVar specify access path of the variable inside the FMU                                                                                                                                                    #
 ############################################################################################################################################################################################################################################
 Model:
-  type: fmu-pyfmi #or fmu-fmpy
+  type: fmu-fmpy # fmu-pyfmi or fmu-fmpy
   path: example/fmu/
   stepSize: 0.01
   inputVar:
