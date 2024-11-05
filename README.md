@@ -179,6 +179,16 @@ Mapping:
 
 The above configuration will map the `TIR` output variable of the `algo` component to the `TIR` input variable of the `model` component before every simulation step and the `TIR` output variable of the `model` component to the `TIR` input variable of the `algo` component after every simulation step.
 
+It is also possible to map multiple input variables to the same output variable. This can be useful if the same input variable is needed in different components (e.g. for plotting). In this case, just add multiple entries to the list like this:
+
+```yaml
+Mapping:
+  preStepMappings:
+    algo.out.TIR:
+    - model.in.TIR
+    - plot.in.TIR
+```
+
 ## Scenarios
 
 Scenarios are instructions for the simulation or other components to follow. The scenario is configured in the `Scenario` section of the configuration file. For an example see [example/configs/config.yaml](example/configs/config.yaml) and the [Scenario](cs_fmu_mapper/components/scenario.py) class. The scenario component is optional.
@@ -198,7 +208,7 @@ The plotter is a component that can be used to plot the output variables of the 
 ## Implementing Custom Components
 
 ### Creating a Custom Component
-A custom simulation component can be created by inheriting from SimulationComponent. The inherited class should define a class variable `type` which value determines the value of the `type` field in the configuration file. Also, all abstract methods from SimulationComponent have to be implemented. The constructor should take two arguments the corresponding section of the configuration as dict and a name. A minimal simulation component could look like:
+A custom simulation component can be created by inheriting from [SimulationComponent](cs_fmu_mapper/components/simulation_component.py). The inherited class should define a class variable `type` which value determines the value of the `type` field in the configuration file. Also, all abstract methods from SimulationComponent have to be implemented. The constructor should take two arguments the corresponding section of the configuration as dict and a name. A minimal simulation component could look like:
 
 ```python
 from simulation_component import SimulationComponent
