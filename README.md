@@ -281,6 +281,7 @@ For logging purposes, these three methods can be used:
 ## Advanced Features
 
 ### Experiment Runner
+
 The experiment runner allows for running multiple preconfigured simulations in a row. This can be useful to compare the results of different simulations without having to manually change the configuration and run the simulation multiple times.
 
 This is done with the [ExperimentRunner](cs_fmu_mapper/experiment_runner.py) class. 
@@ -310,7 +311,7 @@ The scheduler takes the following arguments:
 - `items`: List of items to be scheduled. It is used to define the column names of the schedule (the `column_prefix` parameter of the Scheduler class is automatically prepended to each item to allow for custom column names). Defaults to `DEFAULT_ITEMS`.
 - `times`: List of times at which the schedule changes. It is a list of integers and is used to define the times at which the schedule changes. If not specified the times are automatically determined by the length of the patterns and will be evenly spaced over the interval of the time unit (hours: over 24 hours, minutes: over 60 minutes, seconds: over 60 seconds). Defaults to `None`.
 - `patterns`: Dictionary containing the time-value patterns. It is used to define the time-value patterns and must be of the same length as the `times` parameter as each pattern is applied at the corresponding time. Defaults to `DEFAULT_PATTERNS`.
-- `time_unit`: Unit of the times and duration parameters. Can be `hours`, `minutes` or `seconds`. Defaults to `hours`.
+- `time_unit`: Unit of the `times` parameter. Can be `"hours"`, `"minutes"` or `"seconds"`. Defaults to `"hours"`.
 
 For example the following configuration:
 
@@ -339,7 +340,7 @@ Contributions are welcome! If you find a bug or have a feature request, please o
 ## TODOs
 
 - [x] Make do_step() method async 
-- [ ] to be tested
+   - [ ] to be tested
 - [x] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. 
 This method should be called in the main loop of the program.
     => initialize method added in Simulation Component is called by mapper before first do_step() 
