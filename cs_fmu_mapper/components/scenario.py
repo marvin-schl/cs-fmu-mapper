@@ -1,18 +1,10 @@
-import importlib.util
 import os
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Tuple
 
 import pandas as pd
 import yaml
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
+from cs_fmu_mapper.scheduler import Scheduler
 from cs_fmu_mapper.utils import chooseFile
-
-
-class ScenarioBase(ABC):
-    @abstractmethod
-    def generate_schedule(self, **kwargs) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-        pass
 
 
 class Scenario(SimulationComponent):
@@ -20,6 +12,9 @@ class Scenario(SimulationComponent):
 
     def __init__(self, config, name):
         super(Scenario, self).__init__(config, name)
+        self._scheduler_default_duration = config.get(
+            "scheduler_default_duration", 86400
+        )
         self._scenario, self._scenario_params = self._load_scenarios(
             config["path"], config.get("parameters", {})
         )
@@ -36,25 +31,36 @@ class Scenario(SimulationComponent):
     def _load_scenarios(self, paths, params):
         scenarios = []
         all_scenario_params = {}
+
         if isinstance(paths, str):
             paths = [paths]
 
         for path in paths:
-            scenario_params = {}
-            self._log.info(f"Loading scenario from: {path}")
-            if path.endswith(".py"):
-                scenario, scenario_params = self._load_python_scenario(
-                    path, params.get(path, {})
-                )
-            else:
-                scenario = self._load_csv_scenario(path)
+            # Handle both scheduler and file-based scenarios
+            if isinstance(path, dict):
+                # Scheduler case
+                if "Scheduler" not in path:
+                    raise ValueError(f"Invalid scheduler config: {path}")
 
-            assert (
-                "t" in scenario.columns
-            ), f"Scenario {path} must contain a column 't'."
+                scheduler_name = path["Scheduler"]
+                self._log.info(f"Loading scheduler with name: {scheduler_name}")
+                scenario, scenario_params = self._init_scheduler(
+                    scheduler_name, params.get(scheduler_name, {})
+                )
+                if scenario_params:
+                    all_scenario_params[scheduler_name] = scenario_params
+
+            else:
+                # CSV file case
+                self._log.info(f"Loading scenario from: {path}")
+                scenario = self._load_csv_scenario(path)
+                all_scenario_params[path] = {}
+
+            # Validate scenario has required time column
+            if not isinstance(scenario, pd.DataFrame) or "t" not in scenario.columns:
+                raise ValueError(f"Scenario {path} must be a DataFrame with column 't'")
+
             scenarios.append(scenario)
-            if scenario_params:
-                all_scenario_params[path] = scenario_params
 
         # merge all scenarios into one dataframe
         merged_scenario = pd.DataFrame()
@@ -72,26 +78,10 @@ class Scenario(SimulationComponent):
 
         return merged_scenario, all_scenario_params
 
-    def _load_python_scenario(self, path, params):
-        spec = importlib.util.spec_from_file_location("scenario_module", path)
-        if spec is None or spec.loader is None:
-            raise ValueError(f"Failed to load scenario from {path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        scenario_classes = [
-            cls
-            for cls in module.__dict__.values()
-            if isinstance(cls, type)
-            and issubclass(cls, ScenarioBase)
-            and cls != ScenarioBase
-        ]
-        if not scenario_classes:
-            raise ValueError(f"No ScenarioBase subclass found in {path}")
-
-        scenario_class = scenario_classes[0]
-        scenario_instance = scenario_class()
-        return scenario_instance.generate_schedule(**params)
+    def _init_scheduler(self, name, params):
+        params["duration"] = params.get("duration", self._scheduler_default_duration)
+        scheduler = Scheduler(**params)
+        return scheduler.generate_scenario()
 
     def _load_csv_scenario(self, path):
         if os.path.exists(path):

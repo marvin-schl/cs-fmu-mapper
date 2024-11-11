@@ -1,14 +1,16 @@
 Scenario:
   type: scenario
   path:
-    - example/scenario/CustomScenario.py
+    - Scheduler: CustomScenario
   parameters:
-    example/scenario/CustomScenario.py:
+    CustomScenario:
       duration: 120 # in seconds
-      times: [0, 15, 30, 45] # in seconds
-      time_unit: seconds
+      time_unit: seconds # time unit for times
+      times: [0, 15, 30, 45] # times at which the pattern is set
       patterns:
-        "1": [1, 2, 3, 4]
+        "1": [1, 2, 3, 4] # pattern to use for the items
+      items: ["u"] # items to generate a schedule for
+      start_time: 0 # start time of the schedule
   outputVar:
     scen.out.u:
       init: 0
