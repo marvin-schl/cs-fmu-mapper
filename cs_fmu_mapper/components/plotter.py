@@ -209,6 +209,7 @@ class TimeSeriesPlot(BasePlot):
                     if "linewidth" not in self._config.keys()
                     else self._config["linewidth"]
                 ),
+                **self._config.get("plot_kwargs", {}),
             )
         if "limits" in self._config.keys():
             if "x" in self._config["limits"]:
@@ -272,6 +273,7 @@ class ScatterPlot(BasePlot):
                     if "legend" in self._config.keys()
                     else None
                 ),
+                **self._config.get("plot_kwargs", {}),
             )
 
         if "limits" in self._config.keys():
