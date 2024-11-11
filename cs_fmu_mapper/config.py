@@ -338,6 +338,8 @@ class ConfigurationBuilder:
         return OmegaConf.to_container(self._config)  # type: ignore
 
     def save_to_yaml(self, path: Union[str, Path]):
+        """Save the config to a YAML file."""
+        logging.info(f"Saving config to {path}")
         OmegaConf.save(self._config, str(path))
 
 

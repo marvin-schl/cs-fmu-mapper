@@ -99,6 +99,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    mapper = CSFMUMapper(args.config_path, args.module_dir)
+    mapper = CSFMUMapper(args.config_path, args.module_dir, args.debug)
 
     asyncio.run(mapper.run())
