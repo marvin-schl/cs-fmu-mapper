@@ -68,7 +68,7 @@ The cs-fmu-mapper can be run directly from the command line or imported as a mod
 ### Command Line Usage
 
 ```bash
-    > $ python -m cs_fmu_mapper.main -c example/config.yaml -md example/configs --debug
+    > $ python -m cs_fmu_mapper.main -c example/configs/config.yaml -md example/configs/scenario --debug
 ```
 The arguments are the following:
 - `-c` or `--config_path`: Path to the configuration file.
