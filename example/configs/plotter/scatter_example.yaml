@@ -23,3 +23,5 @@ Plotter:
         - u over y
       xlabel: Y with some \LaTeX
       ylabel: U
+      # plot_kwargs:
+      #   color: red

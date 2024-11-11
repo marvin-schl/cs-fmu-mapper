@@ -25,3 +25,5 @@ Plotter:
         - y
       xlabel: Time [s]
       ylabel: Signal Value
+      # plot_kwargs:
+      #   color: red
