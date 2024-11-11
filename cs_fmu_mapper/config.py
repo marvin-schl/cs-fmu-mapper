@@ -86,11 +86,17 @@ class ConfigurationBuilder:
         self, config: DictConfig | ListConfig, injections: dict[str, Any]
     ) -> DictConfig | ListConfig:
         """Merge the config with additional injections."""
-        return OmegaConf.merge(
-            config,
-            OmegaConf.create(injections),
-            list_merge_mode=ListMergeMode.EXTEND_UNIQUE,
-        )
+        for key, value in injections.items():
+            merge_mode = (
+                value.pop("list_merge_mode", "EXTEND_UNIQUE")
+                if isinstance(value, dict)
+                else "EXTEND_UNIQUE"
+            )
+            temp_config = {key: value}
+            config = OmegaConf.merge(
+                config, temp_config, list_merge_mode=ListMergeMode[merge_mode]
+            )
+        return config
 
     def remove_prefix(self, var: str, index: int = 2) -> str:
         """
@@ -138,34 +144,41 @@ class ConfigurationBuilder:
             f"{prefix}.{direction}.{self.remove_prefix(k)}": v for k, v in vars.items()
         }
 
-    def _assert_mapping_rule(self, rule: dict, prefix_rules: dict) -> None:
-        """Assert that a mapping rule is valid."""
+    def _validate_mapping_rule(self, rule: dict, prefix_rules: dict) -> None:
+        """Validate that a mapping rule is valid and raise errors if not."""
         if "source" in rule:
-            assert (
-                isinstance(rule["source"], dict) and len(rule["source"]) == 1
-            ), "Source must be a dict with one key-value pair"
-            source_component, source_var_type = next(iter(rule["source"].items()))
-            assert (
-                source_component in prefix_rules
-            ), f"Source component '{source_component}' must be in Prefix"
-            assert source_var_type in [
-                "outputVar",
-                "inputVar",
-            ], f"Source var_type must be 'outputVar' or 'inputVar', got '{source_var_type}'"
+            if not isinstance(rule["source"], dict) or len(rule["source"]) != 1:
+                raise ValueError("Source must be a dict with one key-value pair")
 
-        assert "destination" in rule, "Rule must have a 'destination' key"
-        assert (
-            isinstance(rule["destination"], dict) and len(rule["destination"]) == 1
-        ), "Destination must be a dict with one key-value pair"
+            source_component, source_var_type = next(iter(rule["source"].items()))
+
+            if source_component not in prefix_rules:
+                raise ValueError(
+                    f"Source component '{source_component}' must be in Prefix"
+                )
+
+            if source_var_type not in ["outputVar", "inputVar"]:
+                raise ValueError(
+                    f"Source var_type must be 'outputVar' or 'inputVar', got '{source_var_type}'"
+                )
+
+        if "destination" not in rule:
+            raise ValueError("Rule must have a 'destination' key")
+
+        if not isinstance(rule["destination"], dict) or len(rule["destination"]) != 1:
+            raise ValueError("Destination must be a dict with one key-value pair")
 
         dest_component, dest_var_type = next(iter(rule["destination"].items()))
-        assert (
-            dest_component in prefix_rules
-        ), f"Destination component '{dest_component}' must be in Prefix"
-        assert dest_var_type in [
-            "outputVar",
-            "inputVar",
-        ], f"Destination var_type must be 'outputVar' or 'inputVar', got '{dest_var_type}'"
+
+        if dest_component not in prefix_rules:
+            raise ValueError(
+                f"Destination component '{dest_component}' must be in Prefix"
+            )
+
+        if dest_var_type not in ["outputVar", "inputVar"]:
+            raise ValueError(
+                f"Destination var_type must be 'outputVar' or 'inputVar', got '{dest_var_type}'"
+            )
 
     def _generate_mappings(self) -> None:
         """Generate a mapping of preStepMappings and postStepMappings from the configuration."""
@@ -201,7 +214,7 @@ class ConfigurationBuilder:
                     continue
 
                 for rule in var_rules:
-                    self._assert_mapping_rule(rule, prefix_rules)
+                    self._validate_mapping_rule(rule, prefix_rules)
 
                     source = rule.get("source", {component: var_type})
                     source_component, source_var_type = next(iter(source.items()))
@@ -250,11 +263,18 @@ class ConfigurationBuilder:
         """Load a configuration file and merge it with the current combined configuration."""
         try:
             component_config = self._load_config(str(config_path))
-            self._config = OmegaConf.merge(
-                self._config,
-                component_config,
-                list_merge_mode=ListMergeMode.EXTEND_UNIQUE,
-            )
+
+            for key, value in component_config.items():
+                merge_mode = (
+                    value.pop("list_merge_mode", "EXTEND_UNIQUE")
+                    if isinstance(value, dict)
+                    else "EXTEND_UNIQUE"
+                )
+                temp_config = {key: value}
+                self._config = OmegaConf.merge(
+                    self._config, temp_config, list_merge_mode=ListMergeMode[merge_mode]
+                )
+
         except (FileNotFoundError, ValueError, OmegaConfBaseException) as e:
             raise ValueError(
                 f"Error merging configuration from {config_path}: {str(e)}"
