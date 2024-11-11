@@ -1,9 +1,9 @@
 # from components.simulation_component import SimulationComponent
 import logging
 
-from cs_fmu_mapper.components import SimulationComponent, MasterComponent
+from cs_fmu_mapper.components.master_component import MasterComponent
+from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from cs_fmu_mapper.opcua_fmu_mapper import OPCUAFMUMapper
-
 
 
 class ComponentFactory:
@@ -14,9 +14,7 @@ class ComponentFactory:
         self._plc_component = None
         self._log = logging.getLogger(self.__class__.__name__)
 
-    def createComponents(
-        self, config: dict
-    ) -> MasterComponent:
+    def createComponents(self, config: dict) -> MasterComponent:
         """
         Creates instances of components that inherit from the SimulationComponent and MasterComponent classes with their corresponding configuration dictionaries.
 
@@ -36,7 +34,7 @@ class ComponentFactory:
         self._log.debug("Master classes: " + str(master_classes))
 
         component_classes = {c.type: (c, None) for c in classes}
-        
+
         # Import custom components from the "General" section of the config
         if "General" in config and "customComponents" in config["General"]:
             custom_components = config["General"]["customComponents"]
@@ -66,6 +64,11 @@ class ComponentFactory:
         componentConfig = {name: cfg for name, cfg in config.items() if "type" in cfg}
 
         for name, cfg in componentConfig.items():
+            if cfg["type"] == "logger":
+                self._log.info(
+                    "Component type 'logger' is deprecated and should be renamed to 'plotter'"
+                )
+                cfg["type"] = "plotter"
             type = cfg["type"]
             try:
                 cls, component_input = component_classes[type]
