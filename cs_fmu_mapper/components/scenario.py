@@ -69,9 +69,8 @@ class Scenario(SimulationComponent):
                 merged_scenario = scenario
             else:
                 # Merge on 't' column and fill forward missing values
-                merged_scenario = pd.merge_asof(
-                    merged_scenario, scenario, on="t", direction="forward"
-                )
+                merged_scenario = pd.concat([merged_scenario, scenario]).groupby('t', as_index=False).last()
+                merged_scenario = merged_scenario.sort_values('t')
 
         # Fill any remaining NaN values with forward fill
         merged_scenario = merged_scenario.ffill()
