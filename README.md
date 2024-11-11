@@ -2,22 +2,30 @@
 
 The CS-FMU-Mapper is a Python-based co-simulation framework that enables seamless integration and mapping between FMUs or OPCUA nodes and other simulation components. It provides a flexible configuration system to define component interactions, data mappings, and simulation scenarios.
 
-## Table of Contents
-1. [Installation](#installation)
-2. [Quick Start](#quick-start)
-3. [Usage](#usage)
-4. [Configuration](#configuration)
-   - [Basic Configuration](#basic-configuration)
-   - [ConfigurationBuilder](#configurationbuilder)
-5. [Mappings](#mappings)
-6. [Scenarios](#scenarios)
-7. [Plotter](#plotter)
-8. [Advanced Features](#advanced-features)
-   - [Experiment Runner](#experiment-runner)
-   - [Scheduler](#scheduler)
-6. [Implementing Custom Components](#implementing-custom-components)
-7. [Contributing](#contributing)
-8. [TODOs](#todos)
+- [CS-FMU-Mapper](#cs-fmu-mapper)
+  - [Installation](#installation)
+  - [Quick Start](#quick-start)
+  - [Usage](#usage)
+    - [Command Line Usage](#command-line-usage)
+    - [Python Module Usage](#python-module-usage)
+  - [Configuration](#configuration)
+    - [Basic Configuration](#basic-configuration)
+    - [ConfigurationBuilder](#configurationbuilder)
+      - [Modular Configs](#modular-configs)
+      - [List Merge Mode](#list-merge-mode)
+  - [Mappings](#mappings)
+  - [Scenarios](#scenarios)
+  - [Plotter](#plotter)
+  - [Implementing Custom Components](#implementing-custom-components)
+    - [Creating a Custom Component](#creating-a-custom-component)
+    - [Integrating a Custom Component](#integrating-a-custom-component)
+    - [Accessing Component Inputs and Outputs](#accessing-component-inputs-and-outputs)
+  - [Advanced Features](#advanced-features)
+    - [Experiment Runner](#experiment-runner)
+    - [Scheduler](#scheduler)
+  - [Contributing](#contributing)
+  - [TODOs](#todos)
+
 
 ## Installation
 
@@ -48,7 +56,7 @@ This repository can be installed as a package via pip. The package has not yet b
 ## Quick Start
 
 ```bash
-    > $ python -m cs_fmu_mapper.main -c example/config.yaml
+    > $ python -m cs_fmu_mapper.main -c example/configs/config.yaml
 ```
 
 This will run the simulation with the configuration given in [example/config.yaml](example/config.yaml) and will save the results in the [example/results](example/results) directory.
@@ -155,6 +163,18 @@ Algorithm:
     algo.out.u:
       nodeID: u
 ...
+```
+
+#### List Merge Mode
+
+The `ListMergeMode` is an enum that determines how lists should be merged. The default is `EXTEND_UNIQUE` which extends the list by adding unique elements and is the most useful mode. The other modes are `EXTEND` which extends the list by adding all elements and `REPLACE` which replaces the list with the new list. For more information see the [OmegaConf documentation](https://omegaconf.readthedocs.io/en/latest/usage.html#omegaconf-merge).
+
+In order to change the `ListMergeMode` for a specific injection just add the `list_merge_mode` key to the injection dictionary. For example:
+
+```yaml
+injection:
+  list_merge_mode: EXTEND # or EXTEND_UNIQUE or REPLACE. Defaults to EXTEND_UNIQUE (if not specified)
+  ...
 ```
 
 ## Mappings
@@ -304,30 +324,35 @@ The experiment runner takes the following arguments:
 
 ### Scheduler
 
-The scheduler allows for customizable scenarios based on time-value patterns. This is done by creating a python file importing the [Scheduler](cs_fmu_mapper/scheduler.py) class and creating a schedule with the `generate_schedule` method. For an example see [CustomScenario.py](example/scenario/CustomScenario.py). The [ScenarioBase](cs_fmu_mapper/components/scenario.py) class is important as only classes inheriting from it can be used as scenarios. The `DEFAULT_PATTERNS` and `DEFAULT_ITEMS` variables are optional and can be used to define default patterns and items. In the `scenario` component configuration the `parameters` can be used to overwrite the default patterns and items and other parameters of the `generate_schedule` method.
+The scheduler allows for customizable scenarios based on time-value patterns. This is done by defining a scenario path that begins with `Scheduler` in the `Scenario` component configuration and defining the parameters in the `parameters` section. For an example see [customScenario.yaml](example/configs/scenario/customScenario.yaml). In the `scenario` component configuration the `parameters` are used to define the parameters of the `Scheduler` class.
 
 The scheduler takes the following arguments:
 - `duration`: Duration of the schedule in seconds. It is used to determine the length of the schedule. The patterns are repeated over the duration. Defaults to 4 days.
 - `items`: List of items to be scheduled. It is used to define the column names of the schedule (the `column_prefix` parameter of the Scheduler class is automatically prepended to each item to allow for custom column names). Defaults to `DEFAULT_ITEMS`.
 - `times`: List of times at which the schedule changes. It is a list of integers and is used to define the times at which the schedule changes. If not specified the times are automatically determined by the length of the patterns and will be evenly spaced over the interval of the time unit (hours: over 24 hours, minutes: over 60 minutes, seconds: over 60 seconds). Defaults to `None`.
 - `patterns`: Dictionary containing the time-value patterns. It is used to define the time-value patterns and must be of the same length as the `times` parameter as each pattern is applied at the corresponding time. Defaults to `DEFAULT_PATTERNS`.
-- `time_unit`: Unit of the `times` parameter. Can be `"hours"`, `"minutes"` or `"seconds"`. Defaults to `"hours"`.
+- `time_unit`: Unit of the `times` parameter. Can be either `"days"`, `"hours"`, `"minutes"` or `"seconds"`. Defaults to `"hours"`.
+- `column_prefix`: Prefix for the column names of the schedule. Defaults to `"scen.out."`.
+- `start_time`: Start time of the schedule. Defaults to `0`.
 
 For example the following configuration:
 
 ```yaml
 Scenario:
-  path: example/scenario/CustomScenario.py
+  path:
+    - Scheduler: CustomScenario
   parameters:
-    example/scenario/CustomScenario.py:
-      duration: 3600
+    CustomScenario:
+      duration: 7200
       items: ["u"]
       times: [0, 30, 59]
       patterns: {"1": [1, 0, 1]}
       time_unit: minutes
+      column_prefix: "custom_"
+      start_time: 3600
 ```
 
-This will create a schedule where the value of `u` changes at times 0:00, 0:30 and 0:59, following the pattern [1, 0, 1]. This pattern repeats every hour (3600 seconds).
+This will create a schedule where the value of `u` changes at times 1:00, 1:30 and 1:59, following the pattern [1, 0, 1]. This pattern starts at 3600 seconds (1:00) and repeats over the duration of 2 hours (7200 seconds).
 
 In this example, notice that the pattern uses `"1"` as its key instead of `"u"`. When pattern keys don't match the item names in the `items` list, the scheduler will map them in order. So here, the pattern `"1": [1, 0, 1]` gets mapped to the item `"u"`.
 
@@ -346,3 +371,5 @@ This method should be called in the main loop of the program.
     => initialize method added in Simulation Component is called by mapper before first do_step() 
 - [ ] Make sure that AbstractOPCUA client uses its own logger and not the SimulationComponent logger
 - [ ] Add comments to methods
+- [ ] Add functionality to run experiments in parallel.
+- [ ] Accept also full configs as experiment files.

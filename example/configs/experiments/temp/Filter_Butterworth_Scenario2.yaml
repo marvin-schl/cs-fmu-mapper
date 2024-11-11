@@ -1,0 +1,106 @@
+General:
+  outputFolder: example/results/experiments/Filter_Butterworth_Scenario2
+Components:
+  model: Filter
+  connection: FMU
+  plotter:
+  - scatter_example
+  - step_response
+  mapping: mapping
+  scenario:
+  - scenario2
+Model:
+  inputVar:
+    model.in.u:
+      init: 0
+      nodeID: u
+  outputVar:
+    model.out.y:
+      init: 0
+      nodeID: 'y'
+  path: example/fmu/filter_butterworth.fmu
+  type: fmu-fmpy
+  stepSize: 0.01
+Plotter:
+  fontfamily: sans-serif
+  inputVar:
+    plot.in.u:
+      init: 0
+      nodeID: u
+    plot.in.y:
+      init: 0
+      nodeID: 'y'
+  outputFolder: example/results/experiments/Filter_Butterworth_Scenario2
+  plots:
+    scatter_example:
+      grid: true
+      legend:
+      - u over y
+      subgrid: true
+      title: Scatter Example
+      type: scatter
+      vars:
+      - u
+      x_var: 'y'
+      xlabel: Y with some \LaTeX
+      ylabel: U
+    step_response:
+      grid: true
+      legend:
+      - u
+      - 'y'
+      linewidth: 2
+      subgrid: true
+      title: Filter Step Response
+      type: time_series
+      vars:
+      - u
+      - 'y'
+      xlabel: Time [s]
+      ylabel: Signal Value
+  type: plotter
+  usetex: false
+  mergePlot: true
+MappingRules:
+  Components:
+    Plotter:
+      inputVar:
+      - destination:
+          Plotter: inputVar
+        source:
+          Model: outputVar
+        type: postStepMappings
+      - destination:
+          Plotter: inputVar
+        source:
+          Scenario: outputVar
+        type: preStepMappings
+    Scenario:
+      outputVar:
+      - destination:
+          Model: inputVar
+        type: preStepMappings
+  Prefix:
+    Model: model
+    Plotter: plot
+    Scenario: scen
+Scenario:
+  outputVar:
+    scen.out.u:
+      init: 0
+      nodeID: u
+  path:
+  - example/scenario/scenario2.csv
+  type: scenario
+  outputFolder: example/results/experiments/Filter_Butterworth_Scenario2
+Master:
+  timeStepPerCycle: 0.01
+  type: standalone-master
+Mapping:
+  preStepMappings:
+    scen.out.u:
+    - plot.in.u
+    - model.in.u
+  postStepMappings:
+    model.out.y:
+    - plot.in.y
