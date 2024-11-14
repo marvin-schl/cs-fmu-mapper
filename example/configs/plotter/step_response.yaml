@@ -1,13 +1,13 @@
-Logger:
-  type: logger
-  path: example/results/
+Plotter:
+  type: plotter
+  outputFolder: example/results/
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
-    log.in.y:
+    plot.in.y:
       init: 0
       nodeID: y
-    log.in.u:
+    plot.in.u:
       init: 0
       nodeID: u
   plots:
@@ -16,11 +16,14 @@ Logger:
       title: Filter Step Response
       subgrid: true #optional
       grid: true #optional
+      linewidth: 2 #optional
       vars:
-        - log.in.u
-        - log.in.y
+        - u
+        - y
       legend: #optional
         - u
         - y
       xlabel: Time [s]
       ylabel: Signal Value
+      # plot_kwargs:
+      #   color: red

@@ -5,15 +5,24 @@ modular_config: True # Set to True if the config is a modular config. If set to 
 # Values: Can be either a string (single file) or a list (multiple files) containing component settings.
 # File naming: Single file - value is filename without .yaml extension; Multiple files - list filenames without extensions in desired loading order.
 # Example: model: Filter loads 'Filter.yaml' from 'config_directory/model/' subdirectory.
-# Example: logger: [scatter_example, step_response] loads files in that order from 'config_directory/logger/'.
-# Note: The loading order of components is crucial for managing dependencies between components.
+# Example: plotter: [scatter_example, step_response] loads files in that order from 'config_directory/plotter/'.
+# Note: The loading order of components can be crucial for managing component dependencies.
+
+General:
+  outputFolder: example/results/
+  # customComponents:
+  #   CustomComponentClass:
+  #     pathToComponent: path.to.custom.component
+
 Components:
   model: Filter
   connection: FMU
-  logger:
+  plotter:
     - scatter_example
     - step_response
-  scenario: example_scenario
+  scenario:
+    - scenario1
+    - customScenario
   mapping: mapping
 
 # END_COMPONENT_DEFINITIONS
@@ -25,3 +34,10 @@ Master:
 
 Model:
   stepSize: 0.01
+
+Plotter:
+  outputFolder: {{ General.outputFolder }}
+  mergePlot: true
+
+Scenario:
+  outputFolder: {{ General.outputFolder }}

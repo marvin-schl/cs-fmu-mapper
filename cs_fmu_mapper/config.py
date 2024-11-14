@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import IO, Any, Literal, Union
 
 import jinja2
-from jinja2 import Environment, FileSystemLoader
+import yaml
+from jinja2 import Environment
 from omegaconf import DictConfig, ListConfig, ListMergeMode, OmegaConf
 from omegaconf.errors import OmegaConfBaseException
 
@@ -24,8 +25,8 @@ class ConfigurationBuilder:
         module_dir: Union[str, Path] = os.path.join(
             Path(__file__).parent.parent, "example", "configs"
         ),
-        settings_injections: dict[str, Any] = {},
-        config_injections: dict[str, Any] = {},
+        pre_build_injections: dict[str, Any] = {},
+        post_build_injections: dict[str, Any] = {},
     ):
         """
         Initialize the ConfigurationBuilder.
@@ -33,33 +34,30 @@ class ConfigurationBuilder:
         ### Arguments:
         - config_file_path: Relative or absolute path to the configuration file (Modular or Full config)
         - module_dir: For modular configs: Directory containing the modular config files.
-        - settings_injections: Additional dictionary to inject into the settings config.
-        - config_injections: Additional dictionary to inject into the config before generating the mappings.
+        - pre_build_injections: Additional dictionary to inject before the build process.
+        - post_build_injections: Additional dictionary to inject after the build process.
         """
         self._config_file_path = Path(config_file_path).resolve()
         self._module_dir = Path(module_dir).resolve()
 
-        self._settings_injections = settings_injections
-        self._config_injections = config_injections
-
+        self._pre_build_injections = pre_build_injections
+        self._post_build_injections = post_build_injections
         self._config = self._load_initial_config(self._config_file_path)
-
-        self._use_modular_config = self._config.setdefault("modular_config", False)
-
-        if self._use_modular_config:
-            self._settings_config = self._config
-            self._config = OmegaConf.create()
-
+        self._use_modular_config = self._config.pop("modular_config", False)
         self._env = Environment()
 
         if self._use_modular_config:
             self._settings_config = self._handle_injections(
-                self._settings_config, self._settings_injections
+                self._config, self._pre_build_injections
             )
+            self._config = self._settings_config.copy()
             self._handle_modular_config(self._config_file_path)
-
-        if "modular_config" in self._config:  # type: ignore
-            del self._config["modular_config"]  # type: ignore
+            if "modular_config" in self._config:
+                del self._config["modular_config"]
+        else:
+            self._config = self._handle_injections(
+                self._config, self._post_build_injections
+            )
 
     def _handle_modular_config(self, config_file_path: Union[str, Path]):
         """Handle the modular configuration by loading component configs, merging files, and generating mappings."""
@@ -68,9 +66,9 @@ class ConfigurationBuilder:
         self._merge_config(config_file_path)  # Apply overrides
         # to prevent overwriting of settings_config injections, merge them with the config
         self._config = OmegaConf.merge(self._config, self._settings_config)
-        if self._config_injections:
+        if self._post_build_injections:
             self._config = self._handle_injections(
-                self._config, self._config_injections
+                self._config, self._post_build_injections
             )
         self._generate_mappings()
 
@@ -88,11 +86,17 @@ class ConfigurationBuilder:
         self, config: DictConfig | ListConfig, injections: dict[str, Any]
     ) -> DictConfig | ListConfig:
         """Merge the config with additional injections."""
-        return OmegaConf.merge(
-            config,
-            OmegaConf.create(injections),
-            list_merge_mode=ListMergeMode.EXTEND_UNIQUE,
-        )
+        for key, value in injections.items():
+            merge_mode = (
+                value.pop("list_merge_mode", "EXTEND_UNIQUE")
+                if isinstance(value, dict)
+                else "EXTEND_UNIQUE"
+            )
+            temp_config = {key: value}
+            config = OmegaConf.merge(
+                config, temp_config, list_merge_mode=ListMergeMode[merge_mode]
+            )
+        return config
 
     def remove_prefix(self, var: str, index: int = 2) -> str:
         """
@@ -140,34 +144,41 @@ class ConfigurationBuilder:
             f"{prefix}.{direction}.{self.remove_prefix(k)}": v for k, v in vars.items()
         }
 
-    def _assert_mapping_rule(self, rule: dict, prefix_rules: dict) -> None:
-        """Assert that a mapping rule is valid."""
+    def _validate_mapping_rule(self, rule: dict, prefix_rules: dict) -> None:
+        """Validate that a mapping rule is valid and raise errors if not."""
         if "source" in rule:
-            assert (
-                isinstance(rule["source"], dict) and len(rule["source"]) == 1
-            ), "Source must be a dict with one key-value pair"
-            source_component, source_var_type = next(iter(rule["source"].items()))
-            assert (
-                source_component in prefix_rules
-            ), f"Source component '{source_component}' must be in Prefix"
-            assert source_var_type in [
-                "outputVar",
-                "inputVar",
-            ], f"Source var_type must be 'outputVar' or 'inputVar', got '{source_var_type}'"
+            if not isinstance(rule["source"], dict) or len(rule["source"]) != 1:
+                raise ValueError("Source must be a dict with one key-value pair")
 
-        assert "destination" in rule, "Rule must have a 'destination' key"
-        assert (
-            isinstance(rule["destination"], dict) and len(rule["destination"]) == 1
-        ), "Destination must be a dict with one key-value pair"
+            source_component, source_var_type = next(iter(rule["source"].items()))
+
+            if source_component not in prefix_rules:
+                raise ValueError(
+                    f"Source component '{source_component}' must be in Prefix"
+                )
+
+            if source_var_type not in ["outputVar", "inputVar"]:
+                raise ValueError(
+                    f"Source var_type must be 'outputVar' or 'inputVar', got '{source_var_type}'"
+                )
+
+        if "destination" not in rule:
+            raise ValueError("Rule must have a 'destination' key")
+
+        if not isinstance(rule["destination"], dict) or len(rule["destination"]) != 1:
+            raise ValueError("Destination must be a dict with one key-value pair")
 
         dest_component, dest_var_type = next(iter(rule["destination"].items()))
-        assert (
-            dest_component in prefix_rules
-        ), f"Destination component '{dest_component}' must be in Prefix"
-        assert dest_var_type in [
-            "outputVar",
-            "inputVar",
-        ], f"Destination var_type must be 'outputVar' or 'inputVar', got '{dest_var_type}'"
+
+        if dest_component not in prefix_rules:
+            raise ValueError(
+                f"Destination component '{dest_component}' must be in Prefix"
+            )
+
+        if dest_var_type not in ["outputVar", "inputVar"]:
+            raise ValueError(
+                f"Destination var_type must be 'outputVar' or 'inputVar', got '{dest_var_type}'"
+            )
 
     def _generate_mappings(self) -> None:
         """Generate a mapping of preStepMappings and postStepMappings from the configuration."""
@@ -203,7 +214,7 @@ class ConfigurationBuilder:
                     continue
 
                 for rule in var_rules:
-                    self._assert_mapping_rule(rule, prefix_rules)
+                    self._validate_mapping_rule(rule, prefix_rules)
 
                     source = rule.get("source", {component: var_type})
                     source_component, source_var_type = next(iter(source.items()))
@@ -252,11 +263,18 @@ class ConfigurationBuilder:
         """Load a configuration file and merge it with the current combined configuration."""
         try:
             component_config = self._load_config(str(config_path))
-            self._config = OmegaConf.merge(
-                self._config,
-                component_config,
-                list_merge_mode=ListMergeMode.EXTEND_UNIQUE,
-            )
+
+            for key, value in component_config.items():
+                merge_mode = (
+                    value.pop("list_merge_mode", "EXTEND_UNIQUE")
+                    if isinstance(value, dict)
+                    else "EXTEND_UNIQUE"
+                )
+                temp_config = {key: value}
+                self._config = OmegaConf.merge(
+                    self._config, temp_config, list_merge_mode=ListMergeMode[merge_mode]
+                )
+
         except (FileNotFoundError, ValueError, OmegaConfBaseException) as e:
             raise ValueError(
                 f"Error merging configuration from {config_path}: {str(e)}"
@@ -273,6 +291,19 @@ class ConfigurationBuilder:
             context = {**self._config, "transform_vars": self.transform_vars}  # type: ignore
             template = jinja2.Template(yaml_content)
             rendered_yaml = template.render(**context)
+
+            # Parse the rendered YAML and convert any integer keys back to strings
+            parsed_yaml = yaml.safe_load(rendered_yaml)
+
+            def convert_int_keys_to_str(obj):
+                if isinstance(obj, dict):
+                    return {str(k): convert_int_keys_to_str(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_int_keys_to_str(item) for item in obj]
+                return obj
+
+            converted_yaml = convert_int_keys_to_str(parsed_yaml)
+            rendered_yaml = yaml.dump(converted_yaml)
             return OmegaConf.create(rendered_yaml)
         except FileNotFoundError:
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
@@ -307,6 +338,8 @@ class ConfigurationBuilder:
         return OmegaConf.to_container(self._config)  # type: ignore
 
     def save_to_yaml(self, path: Union[str, Path]):
+        """Save the config to a YAML file."""
+        logging.info(f"Saving config to {path}")
         OmegaConf.save(self._config, str(path))
 
 

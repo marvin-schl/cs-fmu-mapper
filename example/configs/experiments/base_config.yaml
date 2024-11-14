@@ -1,0 +1,29 @@
+modular_config: True
+
+General:
+  outputFolder: example/results/experiments
+
+Components:
+  model: Filter
+  connection: FMU
+  plotter:
+    - scatter_example
+    - step_response
+  mapping: mapping
+
+# END_COMPONENT_DEFINITIONS
+
+Master:
+  type: standalone-master
+  timeStepPerCycle: 0.01
+  # tend: 4
+
+Model:
+  stepSize: 0.01
+
+Scenario:
+  outputFolder: {{ General.outputFolder }}
+
+Plotter:
+  outputFolder: {{ General.outputFolder }}
+  mergePlot: true

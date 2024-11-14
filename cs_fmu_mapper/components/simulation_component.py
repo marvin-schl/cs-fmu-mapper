@@ -1,8 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
 
-from tqdm import tqdm
-
 
 class SimulationComponent(ABC):
 

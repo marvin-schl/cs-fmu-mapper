@@ -1,0 +1,19 @@
+CustomScenario:
+  column_prefix: scen.out.
+  duration: 120
+  items:
+  - u
+  patterns:
+    u:
+    - 1.0
+    - 2.0
+    - 3.0
+    - 4.0
+  start_time: 0
+  time_unit: seconds
+  times:
+  - 0
+  - 15
+  - 30
+  - 45
+example/scenario/scenario1.csv: {}

@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from tqdm import tqdm

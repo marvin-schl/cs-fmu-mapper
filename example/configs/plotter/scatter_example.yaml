@@ -1,13 +1,13 @@
-Logger:
-  type: logger
-  path: example/results/
+Plotter:
+  type: plotter
+  outputFolder: example/results/
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
-    log.in.y:
+    plot.in.y:
       init: 0
       nodeID: y
-    log.in.u:
+    plot.in.u:
       init: 0
       nodeID: u
   plots:
@@ -17,9 +17,11 @@ Logger:
       subgrid: true #optional
       grid: true #optional
       vars:
-        - log.in.u
-      x_var: log.in.y
+        - u
+      x_var: y
       legend: #optional
         - u over y
       xlabel: Y with some \LaTeX
       ylabel: U
+      # plot_kwargs:
+      #   color: red

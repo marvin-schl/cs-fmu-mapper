@@ -1,7 +1,4 @@
-import time
-
 from cs_fmu_mapper.components.master_component import MasterComponent
-from tqdm import tqdm
 
 
 class StandaloneSimulationMaster(MasterComponent):

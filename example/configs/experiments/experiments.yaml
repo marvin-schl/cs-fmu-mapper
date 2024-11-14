@@ -1,0 +1,58 @@
+##########################################################################################
+# Test Experiments Configuration
+#
+# This file defines various test scenarios for different models and scenarios.
+# Each top-level key represents a unique test configuration.
+#
+# ----------------------------------------------------------------------------------------
+#                                       STRUCTURE
+# ----------------------------------------------------------------------------------------
+# <ExperimentName>:
+#   output_folder: <folder for plot outputs>
+#   pre_build_injections:
+#     * overwrites for the first components section of the base_config *
+#   post_build_injections:
+#     * overwrites for the build config *
+#
+###########################################################################################
+
+Filter_Bessel_Scenario1:
+  output_folder: example/results/experiments
+  pre_build_injections:
+    Components:
+      model: Filter
+      scenario:
+        - scenario1
+  post_build_injections:
+    Model:
+      path: example/fmu/filter_bessel.fmu
+
+Filter_Butterworth_Scenario2:
+  output_folder: example/results/experiments
+  pre_build_injections:
+    Components:
+      model: Filter
+      scenario:
+        - scenario2
+  post_build_injections:
+    Model:
+      path: example/fmu/filter_butterworth.fmu
+
+Filter_Bessel_CustomScenario:
+  output_folder: example/results/experiments
+  pre_build_injections:
+    Components:
+      model: Filter
+      scenario:
+        - CustomScenario
+  post_build_injections:
+    Model:
+      path: example/fmu/filter_bessel.fmu
+    Scenario:
+      parameters:
+        tests/CustomScenario.py:
+          duration: 120 # in seconds
+          time_unit: seconds
+          times: [0, 15, 30, 45] # in seconds
+          patterns:
+            "1": [1, 2, 3, 4]

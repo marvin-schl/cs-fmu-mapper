@@ -67,9 +67,10 @@ Scenario:
 # contains inputs. The inputVar specifies the variables that should be logged. The entry names are arbitrary and can be chosen freely with the exception that the names should be    #
 # unique as they are used for mapping. Plots can be configured as shown. The logged raw data will be saved as csv also. The configured nodeIDs specify the column names.             #
 ######################################################################################################################################################################################
-Logger:
-  type: logger
-  path: example/results/
+Plotter:
+  type: plotter
+  outputFolder: example/results/
+  mergePlot: true #optional, true for generating a single pdf with all plots
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
@@ -85,26 +86,31 @@ Logger:
       title: Filter Step Response
       subgrid: true #optional
       grid: true #optional
+      linewidth: 2 #optional
       vars:
-        - log.in.u
-        - log.in.y
+        - u
+        - y
       legend: #optional
         - u
         - y
       xlabel: Time [s]
       ylabel: Signal Value
+      # plot_kwargs:
+      #   linestyle: "-."
     scatter_example:
       type: scatter
       title: Scatter Example
       subgrid: true #optional
       grid: true #optional
       vars:
-        - log.in.u
-      x_var: log.in.y
+        - u
+      x_var: y
       legend: #optional
         - u over y
       xlabel: Y with some \LaTeX
       ylabel: U
+      # plot_kwargs:
+      #   marker: ">"
 
 ########################################################################################################################################################################################
 # The Mapping specifies how the variables from the FMU, PLC and Scenario are mapped to each other. The timeStepPerCycle specifies the time which is simulated per step. For standalone #

@@ -1,16 +1,16 @@
 MappingRules:
   Prefix:
-    Logger: "log"
+    Plotter: "plot"
     Model: "model"
     Scenario: "scen"
   Components:
-    Logger:
+    Plotter:
       inputVar:
         - source: { Model: "outputVar" }
-          destination: { Logger: "inputVar" }
+          destination: { Plotter: "inputVar" }
           type: postStepMappings
         - source: { Scenario: "outputVar" }
-          destination: { Logger: "inputVar" }
+          destination: { Plotter: "inputVar" }
           type: preStepMappings
     Scenario:
       outputVar:
