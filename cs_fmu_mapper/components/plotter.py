@@ -213,9 +213,9 @@ class TimeSeriesPlot(BasePlot):
             )
         if "limits" in self._config.keys():
             if "x" in self._config["limits"]:
-                ax.set_xlim(self._config["limits"]["x"])
+                ax.set_xlim(self._config["limits"]["x"][0], self._config["limits"]["x"][1])
             if "y" in self._config["limits"]:
-                ax.set_ylim(self._config["limits"]["y"])
+                ax.set_ylim(self._config["limits"]["y"][0], self._config["limits"]["y"][1])
         if "textfield" in self._config:
             prefix = self._config["textfield"].get("prefix", "")
             var = self._config["textfield"].get("var", "time")
@@ -278,9 +278,9 @@ class ScatterPlot(BasePlot):
 
         if "limits" in self._config.keys():
             if "x" in self._config["limits"]:
-                ax.set_xlim(self._config["limits"]["x"])
+                ax.set_xlim(self._config["limits"]["x"][0], self._config["limits"]["x"][1])
             if "y" in self._config["limits"]:
-                ax.set_ylim(self._config["limits"]["y"])
+                ax.set_ylim(self._config["limits"]["y"][0], self._config["limits"]["y"][1])
 
         self.finalize(fig, ax)
 
