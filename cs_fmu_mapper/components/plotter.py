@@ -114,6 +114,8 @@ def convert_units(data: dict, vars: list, unit_config: dict):
         conversion_factor = 1 / 3600
     elif from_unit == "s" and to_unit == "d":
         conversion_factor = 1 / 86400
+    elif from_unit == "s" and to_unit == "min":
+        conversion_factor = 1 / 60
     elif from_unit == "C" and to_unit == "K":
         conversion_offset = 273.15
     elif from_unit == "K" and to_unit == "C":
