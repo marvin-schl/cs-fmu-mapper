@@ -52,8 +52,11 @@ class AbstractOPCUAClient(ABC):
             )
             self._nodes[in_var] = input_node
             # fill dict with a inital input node-value-pair
-            self._input_values[in_var] = self._config["inputVar"][in_var]["init"]
-
+            self._input_values[in_var] = (
+                self._config["inputVar"][in_var]["init"]
+                if "init" in self._config["inputVar"][in_var]
+                else 0
+            )
         # create output node-value dict
         for out_var in self._config["outputVar"].keys():
             # extract node object by NodeID
@@ -62,7 +65,11 @@ class AbstractOPCUAClient(ABC):
             )
             # fill dict with a inital output node-value-pair
             self._nodes[out_var] = output_node
-            self._output_values[out_var] = self._config["outputVar"][out_var]["init"]
+            self._output_values[out_var] = (
+                self._config["outputVar"][out_var]["init"]
+                if "init" in self._config["outputVar"][out_var]
+                else 0
+            )
 
     async def run(self) -> None:
         """Connects client, invokes node initialization and delegates normal client operation to client specific _run() method. Disconnects and finalizes on asyncio.CancelledError."""
