@@ -32,13 +32,21 @@ class SimulationComponent(ABC):
 
     def _init_input_values(self):
         self._input_values = {
-            k: self._config["inputVar"][k]["init"]
+            k: (
+                self._config["inputVar"][k]["init"]
+                if "init" in self._config["inputVar"][k]
+                else 0
+            )
             for k in self._config["inputVar"].keys()
         }
 
     def _init_output_values(self):
         self._output_values = {
-            k: self._config["outputVar"][k]["init"]
+            k: (
+                self._config["outputVar"][k]["init"]
+                if "init" in self._config["outputVar"][k]
+                else 0
+            )
             for k in self._config["outputVar"].keys()
         }
 
