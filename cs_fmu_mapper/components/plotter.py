@@ -128,6 +128,10 @@ def convert_units(data: dict, vars: list, unit_config: dict):
         conversion_factor = 1000
     elif from_unit == "MW" and to_unit == "W":
         conversion_factor = 1000000
+    elif from_unit == "percent1" and to_unit == "percent100":
+        conversion_factor = 100
+    elif from_unit == "percent100" and to_unit == "percent1":
+        conversion_factor = 1 / 100
 
     for var in vars:
         data[var] = [
@@ -215,9 +219,13 @@ class TimeSeriesPlot(BasePlot):
             )
         if "limits" in self._config.keys():
             if "x" in self._config["limits"]:
-                ax.set_xlim(self._config["limits"]["x"][0], self._config["limits"]["x"][1])
+                ax.set_xlim(
+                    self._config["limits"]["x"][0], self._config["limits"]["x"][1]
+                )
             if "y" in self._config["limits"]:
-                ax.set_ylim(self._config["limits"]["y"][0], self._config["limits"]["y"][1])
+                ax.set_ylim(
+                    self._config["limits"]["y"][0], self._config["limits"]["y"][1]
+                )
         if "textfield" in self._config:
             prefix = self._config["textfield"].get("prefix", "")
             var = self._config["textfield"].get("var", "time")
@@ -280,9 +288,13 @@ class ScatterPlot(BasePlot):
 
         if "limits" in self._config.keys():
             if "x" in self._config["limits"]:
-                ax.set_xlim(self._config["limits"]["x"][0], self._config["limits"]["x"][1])
+                ax.set_xlim(
+                    self._config["limits"]["x"][0], self._config["limits"]["x"][1]
+                )
             if "y" in self._config["limits"]:
-                ax.set_ylim(self._config["limits"]["y"][0], self._config["limits"]["y"][1])
+                ax.set_ylim(
+                    self._config["limits"]["y"][0], self._config["limits"]["y"][1]
+                )
 
         self.finalize(fig, ax)
 
