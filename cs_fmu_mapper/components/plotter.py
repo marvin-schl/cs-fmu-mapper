@@ -110,16 +110,19 @@ def convert_units(data: dict, vars: list, unit_config: dict):
     conversion_factor = 1
     conversion_offset = 0
 
+    # Time
     if from_unit == "s" and to_unit == "h":
         conversion_factor = 1 / 3600
     elif from_unit == "s" and to_unit == "d":
         conversion_factor = 1 / 86400
     elif from_unit == "s" and to_unit == "min":
         conversion_factor = 1 / 60
+    # Temperature
     elif from_unit == "C" and to_unit == "K":
         conversion_offset = 273.15
     elif from_unit == "K" and to_unit == "C":
         conversion_offset = -273.15
+    # Power
     elif from_unit == "W" and to_unit == "kW":
         conversion_factor = 1 / 1000
     elif from_unit == "W" and to_unit == "MW":
@@ -128,10 +131,24 @@ def convert_units(data: dict, vars: list, unit_config: dict):
         conversion_factor = 1000
     elif from_unit == "MW" and to_unit == "W":
         conversion_factor = 1000000
+    # Percentage
     elif from_unit == "percent1" and to_unit == "percent100":
         conversion_factor = 100
     elif from_unit == "percent100" and to_unit == "percent1":
         conversion_factor = 1 / 100
+    # Pressure
+    elif from_unit == "Pa" and to_unit == "mWC":
+        conversion_factor = 1 / 9806.65
+    elif from_unit == "mWC" and to_unit == "Pa":
+        conversion_factor = 9806.65
+    elif from_unit == "Pa" and to_unit == "bar":
+        conversion_factor = 1 / 100000
+    elif from_unit == "bar" and to_unit == "Pa":
+        conversion_factor = 100000
+    elif from_unit == "mWC" and to_unit == "bar":
+        conversion_factor = 0.0980665
+    elif from_unit == "bar" and to_unit == "mWC":
+        conversion_factor = 10.1972
 
     for var in vars:
         data[var] = [
