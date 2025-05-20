@@ -149,6 +149,11 @@ def convert_units(data: dict, vars: list, unit_config: dict):
         conversion_factor = 0.0980665
     elif from_unit == "bar" and to_unit == "mWC":
         conversion_factor = 10.1972
+    # Energy
+    elif from_unit == "J" and to_unit == "kWh":
+        conversion_factor = 1 / 3600000
+    elif from_unit == "kWh" and to_unit == "J":
+        conversion_factor = 3600000
 
     for var in vars:
         data[var] = [
