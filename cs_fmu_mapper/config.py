@@ -19,6 +19,8 @@ class ConfigurationBuilder:
     It supports both full configurations and modular configurations.
     """
 
+    breakpoint = "END_COMPONENT_DEFINITIONS"
+
     def __init__(
         self,
         config_file_path: Union[str, Path],
@@ -191,14 +193,12 @@ class ConfigurationBuilder:
         if "Prefix" not in self._config.MappingRules:
             raise KeyError("Prefix not found in MappingRules")
         assert isinstance(self._config, DictConfig), "Config must be a DictConfig"
-
         mapping_rules: dict[str, dict[str, list]] = OmegaConf.to_container(
             self._config.MappingRules.Components
         )  # type: ignore
         prefix_rules: dict[str, str] = OmegaConf.to_container(
             self._config.MappingRules.Prefix
         )  # type: ignore
-
         for component, rules in mapping_rules.items():
             if component not in self._config:
                 logging.info(
@@ -315,13 +315,11 @@ class ConfigurationBuilder:
     def _load_initial_config(
         self, settings_path: Union[str, pathlib.Path]
     ) -> DictConfig | ListConfig:
-        """Load the initial part of a YAML configuration file. Stops at `separator_comment`."""
-        separator_comment = "# END_COMPONENT_DEFINITIONS"
-
+        """Load the initial part of a YAML configuration file. Stops at breakpoint."""
         with open(settings_path, "r") as file:
             partial_yaml_content = []
             for line in file:
-                if separator_comment in line:
+                if self.breakpoint in str(line):
                     break
                 partial_yaml_content.append(line)
 

@@ -23,8 +23,8 @@ The CS-FMU-Mapper is a Python-based co-simulation framework that enables seamles
   - [Advanced Features](#advanced-features)
     - [Experiment Runner](#experiment-runner)
     - [Scheduler](#scheduler)
+  - [Known Issues](#known-issues)
   - [Contributing](#contributing)
-  - [TODOs](#todos)
 
 
 ## Installation
@@ -358,18 +358,10 @@ In this example, notice that the pattern uses `"1"` as its key instead of `"u"`.
 
 This mapping behavior is particularly useful when running multiple simulations that use the same patterns but with different item names. You can keep the patterns constant in your scenario file and only update the `items` list to change which items receive those patterns.
 
+## Known Issues
+
+- The modular configs (jinja2 templates) have difficulties with code formatters like prettier. This can be fixed by adding the `# prettier-ignore` comment to the lines that should not be formatted.
+
 ## Contributing
 
 Contributions are welcome! If you find a bug or have a feature request, please open an issue on GitHub. If you want to contribute code, please fork the repository and create a pull request.
-
-## TODOs
-
-- [x] Make do_step() method async 
-   - [ ] to be tested
-- [x] Add a start_component() method to the SimulationComponent class that automatically does the async initialization of the component. 
-This method should be called in the main loop of the program.
-    => initialize method added in Simulation Component is called by mapper before first do_step() 
-- [ ] Make sure that AbstractOPCUA client uses its own logger and not the SimulationComponent logger
-- [ ] Add comments to methods
-- [ ] Add functionality to run experiments in parallel.
-- [ ] Accept also full configs as experiment files.
