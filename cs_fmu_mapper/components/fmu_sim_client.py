@@ -3,13 +3,14 @@ import os
 from abc import ABC, abstractmethod
 
 import numpy as np
-import pyfmi.fmi as fmi
+
+# import pyfmi.fmi as fmi
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from cs_fmu_mapper.utils import chooseFile
 from fmpy.fmi2 import FMU2Slave
 from fmpy.fmi3 import FMU3Slave
-from fmpy import extract, read_model_description
-from pyfmi import load_fmu
+
+# from pyfmi import load_fmu
 
 
 class FMUSimClient(SimulationComponent):
@@ -276,3 +277,36 @@ class PyFMISimClient(FMUSimClient):
 
     def _call_fmu_step(self, t, dt):
         self._model.do_step(t, dt, True)
+
+
+# class PyFMISimClient(FMUSimClient):
+#
+#    type = "fmu-pyfmi"
+#
+#    def _load_model(self, path):
+#        self._log.info("Using PyFMI as FMU Backend")
+#        model = load_fmu(path)
+#
+#        if type(model) != fmi.FMUModelCS2:
+#            raise TypeError("FMU Model has to be defined as Co-Simulated Model.")
+#        self._fmi_version = "2.0"
+#        return model
+#
+#    def fmu_log_callback_wrapper(self, module, level, message):
+#        self._log.info(message)
+#
+#    def _init_model(self):
+#        self._model.set_additional_logger(self.fmu_log_callback_wrapper)
+#        self._model.initialize()
+#
+#    def _set_input_values(self):
+#        for key, val in self.get_input_values().items():
+#            self._model.set(self.get_node_by_name(key), val)
+#
+#    def _read_output_values(self):
+#        for key in self.get_output_values().keys():
+#            val = self._model.get(self.get_node_by_name(key))
+#            self.set_output_value(key, val[0])
+#
+#    def _call_fmu_step(self, t, dt):
+#        self._model.do_step(t, dt, True)

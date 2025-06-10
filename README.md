@@ -26,15 +26,13 @@ The CS-FMU-Mapper is a Python-based co-simulation framework that enables seamles
   - [Known Issues](#known-issues)
   - [Contributing](#contributing)
 
-
 ## Installation
 
-Create a new Python environment and install the required dependencies:
+Create a new Python environment, e.g. with conda, and install the required dependencies:
 
 ```bash
     > $ conda create -n cs-fmu-mapper python=3.10
     > $ conda activate cs-fmu-mapper
-    > $ conda install -c conda-forge pyfmi
     > $ pip3 install git+https://github.com/marvin-schl/cs-fmu-mapper.git
 ```
 
@@ -43,7 +41,6 @@ Alternativley you can install after cloning the repo for development purposes:
 ```bash
     > $ conda create -n cs-fmu-mapper python=3.10
     > $ conda activate cs-fmu-mapper
-    > $ conda install -c conda-forge pyfmi
     > $ pip3 install -r requirements.txt
 ```
 
@@ -70,7 +67,9 @@ The cs-fmu-mapper can be run directly from the command line or imported as a mod
 ```bash
     > $ python -m cs_fmu_mapper.main -c example/configs/config.yaml -md example/configs/scenario --debug
 ```
+
 The arguments are the following:
+
 - `-c` or `--config_path`: Path to the configuration file.
 - `-md` or `--module_dir`: Path to the directory containing the modular config files (only needed if modular config is used).
 - `-d` or `--debug`: Run in debug mode.
@@ -90,6 +89,7 @@ asyncio.run(mapper.run())
 ## Configuration
 
 ### Basic Configuration
+
 Configuration is done in YAML format. The configuration file can also be formatted as JSON but YAML is recommended as it supports commenting. A detailed commented example configuration is given [here](example/config.yaml).
 
 The configuration basically defines simulation components of type `plc`, `fmu`, `logger` and/or `scenario`. Each components' section defines `ouputVar`s and/or `inputVar`s by specifying their component-specific access string called `nodeID`, e.g. the OPCUA NodeID for a `plc` component or the CSV column name of a `scenario` component. Configuration of `scenario` and `logger` components are optional. Configuration of `plc` component is also optional but only makes sense if there is at least a `scenario` or another custom component configured which interacts with the `fmu`.
@@ -101,6 +101,7 @@ If there is a `plc` component configured the `plc` will be the simulation master
 ### ConfigurationBuilder
 
 The `ConfigurationBuilder` class takes the following arguments:
+
 - `config_file_path`: Absolute or relative path to the configuration file.
 - `module_dir`: Absolute or relative path to the modular config files.
 - `pre_build_injections`: (optional) Additional dictionary to inject before the build process.
@@ -113,6 +114,7 @@ Modular configurations allow for a more flexible and scalable configuration of s
 An Example for a modular configuration is given [here](example/configs/modular_config.yaml). Modular configurations are enabled by setting the `modular_config` flag to `true`. Otherwise the configuration is treated as a full config.
 
 The modular config is technically split into two parts by the `# END_COMPONENT_DEFINITIONS` tag:
+
 1. The 'settings' config which contains all the components that are used to build the full config. Must contain a `Components` key.
 2. Optional overrides for the components defined in the settings config.
 
@@ -120,13 +122,13 @@ The modular configs that are imported from the `Components` section can also be 
 
 ```yaml
 # modular_config.yaml
-...
+---
 # END_COMPONENT_DEFINITIONS
 Algorithm:
   inputVar:
-    {{ transform_vars(Model.outputVar, prefix='algo', direction='in') }}
+    { { transform_vars(Model.outputVar, prefix='algo', direction='in') } }
   outputVar:
-    {{ transform_vars(Model.inputVar, prefix='algo', direction='out') }}
+    { { transform_vars(Model.inputVar, prefix='algo', direction='out') } }
 ```
 
 The `transform_vars` function is a function that is used to transform the variables (see [ConfigurationBuilder](cs_fmu_mapper/config.py)).
@@ -146,7 +148,7 @@ The full config will then look like this:
 
 ```yaml
 # full_config.yaml
-...
+---
 Model:
   inputVar:
     model.in.u:
@@ -158,11 +160,10 @@ Model:
 Algorithm:
   inputVar:
     algo.in.y:
-      nodeID: y 
+      nodeID: y
   outputVar:
     algo.out.u:
       nodeID: u
-...
 ```
 
 #### List Merge Mode
@@ -182,6 +183,7 @@ injection:
 Mappings are used to map the output variables of one component to the input variables of another component. The mapping is configured in the `Mapping` section of the configuration file. For an example see [example/configs/config.yaml](example/configs/config.yaml) and the [OPCUAFMUMapper](cs_fmu_mapper/components/opcua_fmu_mapper.py) class.
 
 The mapping is done in two steps:
+
 1. The `preStepMappings` are applied before every simulation step.
 2. The `postStepMappings` are applied after every simulation step.
 
@@ -191,10 +193,10 @@ The mappings are configured as a dictionary where the keys are the names of the 
 Mapping:
   preStepMappings:
     algo.out.TIR:
-    - model.in.TIR
+      - model.in.TIR
   postStepMappings:
     model.out.TIR:
-    - algo.in.TIR
+      - algo.in.TIR
 ```
 
 The above configuration will map the `TIR` output variable of the `algo` component to the `TIR` input variable of the `model` component before every simulation step and the `TIR` output variable of the `model` component to the `TIR` input variable of the `algo` component after every simulation step.
@@ -205,8 +207,8 @@ It is also possible to map multiple input variables to the same output variable.
 Mapping:
   preStepMappings:
     algo.out.TIR:
-    - model.in.TIR
-    - plot.in.TIR
+      - model.in.TIR
+      - plot.in.TIR
 ```
 
 ## Scenarios
@@ -214,6 +216,7 @@ Mapping:
 Scenarios are instructions for the simulation or other components to follow. The scenario is configured in the `Scenario` section of the configuration file. For an example see [example/configs/config.yaml](example/configs/config.yaml) and the [Scenario](cs_fmu_mapper/components/scenario.py) class. The scenario component is optional.
 
 It takes two types of inputs:
+
 - **Python file**: this must contain a class which inherits from the [ScenarioBase](cs_fmu_mapper/components/scenario.py) class and implements the `generate_schedule` method. This method takes some kwargs defined in the `parameters` section of the scenario configuration and returns a [pandas dataframe](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html) with at least a `t` column containing the simulation time and the new values for the scenario inputs. The columns of the dataframe must be named after the scenarios output variables. The parameters section must contain the path to the python file as key and the kwargs as values.
 - **CSV file**: this must be loadable as a [pandas dataframe](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html) with the `t` column containing the simulation time and the columns containing the new values for the scenario outputs.
 
@@ -221,6 +224,7 @@ If the [mappings](##mappings) are configured correctly the scenarios outputs wil
 
 > [!NOTE]
 > If multiple scenarios are defined the `scenario` component will automatically concatenate and overwrite them. The order of the scenarios in the configuration file defines the order in which they are concatenated / overwritten.
+
 ## Plotter
 
 The plotter is a component that can be used to plot the output variables of the simulation. It is configured in the `Plotter` section of the configuration file. For an example see [example/configs/config.yaml](example/configs/config.yaml) and the [Plotter](cs_fmu_mapper/components/plotter.py) class.
@@ -228,6 +232,7 @@ The plotter is a component that can be used to plot the output variables of the 
 ## Implementing Custom Components
 
 ### Creating a Custom Component
+
 A custom simulation component can be created by inheriting from [SimulationComponent](cs_fmu_mapper/components/simulation_component.py). The inherited class should define a class variable `type` which value determines the value of the `type` field in the configuration file. Also, all abstract methods from SimulationComponent have to be implemented. The constructor should take two arguments the corresponding section of the configuration as dict and a name. A minimal simulation component could look like:
 
 ```python
@@ -304,15 +309,17 @@ For logging purposes, these three methods can be used:
 
 The experiment runner allows for running multiple preconfigured simulations in a row. This can be useful to compare the results of different simulations without having to manually change the configuration and run the simulation multiple times.
 
-This is done with the [ExperimentRunner](cs_fmu_mapper/experiment_runner.py) class. 
+This is done with the [ExperimentRunner](cs_fmu_mapper/experiment_runner.py) class.
 For an example, execute the following command:
 
 ```bash
     > $ python -m cs_fmu_mapper.experiment_runner
 ```
+
 This will run all the experiments specified in the [run.yaml](example/configs/experiments/run.yaml) file, that where defined in the [experiments.yaml](example/configs/experiments/experiments.yaml) file and save the results in the [example/results](example/results) directory. The [base_config.yaml](example/configs/experiments/base_config.yaml) is used as the base configuration for all the experiments which will be extended by the parameters defined in the [experiments.yaml](example/configs/experiments/experiments.yaml) file. There, the `output_folder` is the directory where the results will be saved. Each experiment will create a subdirectory in the `output_folder` with the name of the experiment. The `pre_build_injections` and `post_build_injections` sections of the experiment configuration will be used to overwrite the corresponding sections of the base configuration. See the [ConfigurationBuilder](cs_fmu_mapper/configuration_builder.py) class for more information about the injections.
 
 The experiment runner takes the following arguments:
+
 - `-bc` or `--base_config`: Path to the base configuration file (which gets extended by the experiments).
 - `-md` or `--module_dir`: Path to the directory containing the module configurations (for the modular config).
 - `-ed` or `--experiments_dir`: Path to the directory containing the experiment configurations (directory containing the [experiments.yaml](example/configs/experiments/experiments.yaml) and [run.yaml](example/configs/experiments/run.yaml) files).
@@ -327,6 +334,7 @@ The experiment runner takes the following arguments:
 The scheduler allows for customizable scenarios based on time-value patterns. This is done by defining a scenario path that begins with `Scheduler` in the `Scenario` component configuration and defining the parameters in the `parameters` section. For an example see [customScenario.yaml](example/configs/scenario/customScenario.yaml). In the `scenario` component configuration the `parameters` are used to define the parameters of the `Scheduler` class.
 
 The scheduler takes the following arguments:
+
 - `duration`: Duration of the schedule in seconds. It is used to determine the length of the schedule. The patterns are repeated over the duration. Defaults to 4 days.
 - `items`: List of items to be scheduled. It is used to define the column names of the schedule (the `column_prefix` parameter of the Scheduler class is automatically prepended to each item to allow for custom column names). Defaults to `DEFAULT_ITEMS`.
 - `times`: List of times at which the schedule changes. It is a list of integers and is used to define the times at which the schedule changes. If not specified the times are automatically determined by the length of the patterns and will be evenly spaced over the interval of the time unit (hours: over 24 hours, minutes: over 60 minutes, seconds: over 60 seconds). Defaults to `None`.
@@ -346,7 +354,7 @@ Scenario:
       duration: 7200
       items: ["u"]
       times: [0, 30, 59]
-      patterns: {"1": [1, 0, 1]}
+      patterns: { "1": [1, 0, 1] }
       time_unit: minutes
       column_prefix: "custom_"
       start_time: 3600
