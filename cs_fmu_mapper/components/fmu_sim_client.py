@@ -1,8 +1,9 @@
-import logging
 import os
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+import re
 
-import numpy as np
+from fmpy import extract
+from fmpy.model_description import read_model_description
 
 # import pyfmi.fmi as fmi
 from cs_fmu_mapper.components.simulation_component import SimulationComponent
@@ -117,27 +118,33 @@ class FMPySimClient(FMUSimClient):
         self._log.info("Using FMPy as FMU Backend")
         # read model description
         model_description = read_model_description(path)
-        if model_description.fmiVersion == "2.0":
-            self._fmi_version = "2.0"
-        elif model_description.fmiVersion == "3.0":
-            self._fmi_version = "3.0"
+        if model_description.fmiVersion.startswith("2"):
+            self._fmi_version = model_description.fmiVersion
+        elif model_description.fmiVersion.startswith("3"):
+            self._fmi_version = model_description.fmiVersion
         else:
             raise ValueError(f"Unsupported FMI version: {model_description.fmiVersion}")
         # collect the value references
         self._vrs = {}
         for variable in model_description.modelVariables:
-            self._vrs[variable.name] = {"valueReference": variable.valueReference, "variability": variable.variability, "causality": variable.causality, "type": variable.type}
+            self._vrs[variable.name] = {
+                "valueReference": variable.valueReference,
+                "variability": variable.variability,
+                "causality": variable.causality,
+                "type": variable.type,
+                "dimensions": variable.dimensions,
+            }
         # extract the FMU
         unzipdir = extract(path)
 
-        if self._fmi_version == "2.0":
+        if self._fmi_version.startswith("2"):
             return FMU2Slave(
                 guid=model_description.guid,
                 unzipDirectory=unzipdir,
                 modelIdentifier=model_description.coSimulation.modelIdentifier,
                 instanceName="instance1",
             )
-        elif self._fmi_version == "3.0":
+        elif self._fmi_version.startswith("3"):
             return FMU3Slave(
                 guid=model_description.guid,
                 unzipDirectory=unzipdir,
@@ -149,7 +156,7 @@ class FMPySimClient(FMUSimClient):
         self._time = 0
         # initialize
         self._model.instantiate()
-        if self._fmi_version == "2.0":
+        if self._fmi_version.startswith("2"):
             self._model.setupExperiment(startTime=self._time)
         self._model.enterInitializationMode()
         self._model.exitInitializationMode()
@@ -157,6 +164,7 @@ class FMPySimClient(FMUSimClient):
     def _set_input_values(self):
         for key, val in self.get_input_values().items():
             val = self._set_fmu_value(self.get_node_by_name(key), val)
+
     def _read_output_values(self):
         for key in self.get_output_values().keys():
             val = self._get_fmu_value(self.get_node_by_name(key))
@@ -164,10 +172,10 @@ class FMPySimClient(FMUSimClient):
 
     def _call_fmu_step(self, t, dt):
         self._model.doStep(currentCommunicationPoint=t, communicationStepSize=dt)
-        
+
     def _set_fmu_value(self, key: str, value: float | int | bool | str):
         """
-        Set a value in the FMU. Only input variables and tunable parameters can be set. Floats, ints, booleans and strings can be set. 
+        Set a value in the FMU. Only input variables and tunable parameters can be set. Floats, ints, booleans and strings can be set.
 
         Args:
             key (str): The key of the value to set.
@@ -176,107 +184,156 @@ class FMPySimClient(FMUSimClient):
         Raises:
             KeyError: If the variable is not found in the variables dictionary.
             ValueError: If the parameter is not an input or a tunable parameter.
-            ValueError: If the FMU is not version 2.0 or 3.0.
+            ValueError: If the FMU is not version 2 or 3.
             ValueError: If the type of the parameter is unknown.
-            
+
         """
+
+        if re.match(r".*\[\d+\]$", key):
+            base_key = key[: key.rindex("[")]
+            index = int(key[key.rindex("[") + 1 : -1]) - 1
+            current_value = self._get_fmu_value(base_key)
+            if base_key not in self._vrs:
+                raise KeyError(
+                    f"Variable {base_key} can not be set in FMU because it is not found in the variables dictionary"
+                )
+            if (
+                self._vrs[base_key]["type"] == "Real"
+                or self._vrs[base_key]["type"] == "Float32"
+                or self._vrs[base_key]["type"] == "Float64"
+            ):
+                current_value[index] = float(value)
+            elif (
+                self._vrs[base_key]["type"] == "Integer"
+                or self._vrs[base_key]["type"] == "Int32"
+                or self._vrs[base_key]["type"] == "Int64"
+            ):
+                current_value[index] = int(value)
+            elif self._vrs[base_key]["type"] == "Boolean":
+                current_value[index] = bool(value)
+            elif self._vrs[base_key]["type"] == "String":
+                current_value[index] = str(value)
+            else:
+                raise ValueError(
+                    f"Unknown type: {self._vrs[base_key]['type']}, can not set array element"
+                )
+            value = current_value
+            key = base_key
+        else:
+            value = [value]
+
         if key not in self._vrs:
-            raise KeyError(f"Variable {key} can not be set in FMU because it is not found in the variables dictionary")
-        if self._vrs[key]["causality"] != "input" and self._vrs[key]["variability"] != "tunable":
-            raise ValueError(f"Parameter {key} is not an input or tunable parameter, causality: {self._vrs[key]['causality']}, variability: {self._vrs[key]['variability']}")
+            raise KeyError(
+                f"Variable {key} can not be set in FMU because it is not found in the variables dictionary"
+            )
+        if (
+            self._vrs[key]["causality"] != "input"
+            and self._vrs[key]["variability"] != "tunable"
+        ):
+            raise ValueError(
+                f"Parameter {key} is not an input or tunable parameter, causality: {self._vrs[key]['causality']}, variability: {self._vrs[key]['variability']}"
+            )
         if not isinstance(self._model, (FMU2Slave, FMU3Slave)):
-            raise ValueError(f"The FMU is not version 2.0 or 3.0")
+            raise ValueError(f"The FMU is not version 2 or 3")
+
         match self._vrs[key]["type"]:
             case "Real":
-                    self._model.setReal([self._vrs[key]["valueReference"]], [float(value)])
-            case "Float32":    
-                    self._model.setFloat32([self._vrs[key]["valueReference"]], [float(value)])
-            case "Float64":    
-                    self._model.setFloat64([self._vrs[key]["valueReference"]], [float(value)])
+                self._model.setReal([self._vrs[key]["valueReference"]], value)
+            case "Float32":
+                self._model.setFloat32([self._vrs[key]["valueReference"]], value)
+            case "Float64":
+                self._model.setFloat64([self._vrs[key]["valueReference"]], value)
             case "Integer":
-                    self._model.setInteger([self._vrs[key]["valueReference"]], [int(value)])
+                self._model.setInteger([self._vrs[key]["valueReference"]], value)
             case "Int32":
-                    self._model.setInt32([self._vrs[key]["valueReference"]], [int(value)])
+                self._model.setInt32([self._vrs[key]["valueReference"]], value)
             case "Int64":
-                    self._model.setInt64([self._vrs[key]["valueReference"]], [int(value)])
+                self._model.setInt64([self._vrs[key]["valueReference"]], value)
             case "Boolean":
-                self._model.setBoolean([self._vrs[key]["valueReference"]], [bool(value)])
+                self._model.setBoolean([self._vrs[key]["valueReference"]], value)
             case "String":
-                self._model.setString([self._vrs[key]["valueReference"]], [str(value)])
+                self._model.setString([self._vrs[key]["valueReference"]], value)
             case _:
                 raise ValueError(f"Unknown type: {self._vrs[key]['type']}")
 
-    def _get_fmu_value(self, key: str) -> float | int | bool | str:
+    def _get_fmu_value(self, key: str) -> float | int | bool | str | list:
         """
         Get a value from the FMU. All variable types can be retrieved.
 
         Args:
-            key (str): The key of the value to get.
+            key (str): The key of the value to get. If the key is an array without index, the whole array is returned. If the key is an array with index, the single element is returned, e.g. "array[1]"
 
         Returns:
-            float | int | bool | str: The value retrieved from the FMU.
+            float | int | bool | str | list: The value retrieved from the FMU.
 
         Raises:
             KeyError: If the variable is not found in the variables dictionary.
-            ValueError: If the FMU is not version 2.0 or 3.0.
+            ValueError: If the FMU is not version 2 or 3.
             ValueError: If the type of the parameter is unknown.
         """
+
+        if re.match(r".*\[\d+\]$", key):
+            # check if key is an array with index
+            base_key = key[: key.rindex("[")]
+            index = int(key[key.rindex("[") + 1 : -1]) - 1
+            key = base_key
+            n_values = self._vrs[key]["dimensions"][0].start
+        elif self._vrs[key]["dimensions"]:
+            # check if key is an array without index
+            index = None
+            n_values = self._vrs[key]["dimensions"][0].start
+        else:
+            # key is a single value
+            index = 0
+            n_values = 1
+
         if key not in self._vrs:
-            raise KeyError(f"Variable {key} can not be retrieved from FMU because it is not found in the variables dictionary")
+            raise KeyError(
+                f"Variable {key} can not be retrieved from FMU because it is not found in the variables dictionary"
+            )
         if not isinstance(self._model, (FMU2Slave, FMU3Slave)):
-            raise ValueError(f"The FMU is not version 2.0 or 3.0")
-        
+            raise ValueError(f"The FMU is not version 2 or 3")
+
         match self._vrs[key]["type"]:
             case "Real":
-                    return self._model.getReal([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getReal(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )[index]
             case "Float32":
-                return self._model.getFloat32([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getFloat32(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )
             case "Float64":
-                return self._model.getFloat64([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getFloat64(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )
             case "Integer":
-                    return self._model.getInteger([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getInteger(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )
             case "Int32":
-                    return self._model.getInt32([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getInt32(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )
             case "Int64":
-                    return self._model.getInt64([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getInt64(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )
             case "Boolean":
-                return self._model.getBoolean([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getBoolean(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )
             case "String":
-                return self._model.getString([self._vrs[key]["valueReference"]])[0]
+                return_value = self._model.getString(
+                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                )
             case _:
                 raise ValueError(f"Unknown type: {self._vrs[key]['type']}")
 
-class PyFMISimClient(FMUSimClient):
+        if index is not None:
+            return_value = return_value[index]
 
-    type = "fmu-pyfmi"
-
-    def _load_model(self, path):
-        self._log.info("Using PyFMI as FMU Backend")
-        model = load_fmu(path)
-
-        if type(model) != fmi.FMUModelCS2:
-            raise TypeError("FMU Model has to be defined as Co-Simulated Model.")
-        self._fmi_version = "2.0"
-        return model
-
-    def fmu_log_callback_wrapper(self, module, level, message):
-        self._log.info(message)
-
-    def _init_model(self):
-        self._model.set_additional_logger(self.fmu_log_callback_wrapper)
-        self._model.initialize()
-
-    def _set_input_values(self):
-        for key, val in self.get_input_values().items():
-            self._model.set(self.get_node_by_name(key), val)
-
-    def _read_output_values(self):
-        for key in self.get_output_values().keys():
-            val = self._model.get(self.get_node_by_name(key))
-            self.set_output_value(key, val[0])
-
-    def _call_fmu_step(self, t, dt):
-        self._model.do_step(t, dt, True)
+        return return_value
 
 
 # class PyFMISimClient(FMUSimClient):
