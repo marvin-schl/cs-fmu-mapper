@@ -192,33 +192,46 @@ class FMPySimClient(FMUSimClient):
         if re.match(r".*\[\d+\]$", key):
             base_key = key[: key.rindex("[")]
             index = int(key[key.rindex("[") + 1 : -1]) - 1
-            current_value = self._get_fmu_value(base_key)
-            if base_key not in self._vrs:
-                raise KeyError(
-                    f"Variable {base_key} can not be set in FMU because it is not found in the variables dictionary"
-                )
-            if (
-                self._vrs[base_key]["type"] == "Real"
-                or self._vrs[base_key]["type"] == "Float32"
-                or self._vrs[base_key]["type"] == "Float64"
-            ):
-                current_value[index] = float(value)
-            elif (
-                self._vrs[base_key]["type"] == "Integer"
-                or self._vrs[base_key]["type"] == "Int32"
-                or self._vrs[base_key]["type"] == "Int64"
-            ):
-                current_value[index] = int(value)
-            elif self._vrs[base_key]["type"] == "Boolean":
-                current_value[index] = bool(value)
-            elif self._vrs[base_key]["type"] == "String":
-                current_value[index] = str(value)
+            if base_key in self._vrs:
+                if base_key not in self._vrs:
+                    raise KeyError(
+                        f"Variable {base_key} can not be set in FMU because it is not found in the variables dictionary"
+                    )
+
+                current_value = self._get_fmu_value(base_key)
+
+                if (
+                    self._vrs[base_key]["type"] == "Real"
+                    or self._vrs[base_key]["type"] == "Float32"
+                    or self._vrs[base_key]["type"] == "Float64"
+                ):
+                    current_value[index] = float(value)
+                elif (
+                    self._vrs[base_key]["type"] == "Integer"
+                    or self._vrs[base_key]["type"] == "Int32"
+                    or self._vrs[base_key]["type"] == "Int64"
+                ):
+                    current_value[index] = int(value)
+                elif self._vrs[base_key]["type"] == "Boolean":
+                    current_value[index] = bool(value)
+                elif self._vrs[base_key]["type"] == "String":
+                    current_value[index] = str(value)
+                else:
+                    raise ValueError(
+                        f"Unknown type: {self._vrs[base_key]['type']}, can not set array element"
+                    )
+                value = current_value
+                key = base_key
+
             else:
-                raise ValueError(
-                    f"Unknown type: {self._vrs[base_key]['type']}, can not set array element"
-                )
-            value = current_value
-            key = base_key
+
+                if key not in self._vrs:
+                    raise KeyError(
+                        f"Variable {key} can not be set in FMU because it is not found in the variables dictionary"
+                    )
+
+                value = [value]
+
         else:
             value = [value]
 
@@ -276,8 +289,14 @@ class FMPySimClient(FMUSimClient):
             # check if key is an array with index
             base_key = key[: key.rindex("[")]
             index = int(key[key.rindex("[") + 1 : -1]) - 1
-            key = base_key
-            n_values = self._vrs[key]["dimensions"][0].start
+            try:
+                n_values = self._vrs[base_key]["dimensions"][0].start
+                key = base_key
+            except (KeyError, IndexError) as e:
+                # key is not an array, but a single array element that is saved as array[index], particularly relevant for FMU 2.0 and 3.0 that do not support array dimensions
+                index = 0
+                n_values = 1
+
         elif self._vrs[key]["dimensions"]:
             # check if key is an array without index
             index = None
