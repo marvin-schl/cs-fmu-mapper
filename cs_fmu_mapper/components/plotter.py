@@ -216,7 +216,7 @@ class TimeSeriesPlot(BasePlot):
         super().__init__(data, config)
 
     def generate(self):
-        fig, ax = plt.subplots(figsize=(20, 5))
+        fig, ax = plt.subplots(figsize=(40, 5))
         if "xUnit" in self._config.keys():
             self._data = convert_units(self._data, ["time"], self._config["xUnit"])
         if "yUnit" in self._config.keys():
@@ -248,33 +248,38 @@ class TimeSeriesPlot(BasePlot):
                 ax.set_ylim(
                     self._config["limits"]["y"][0], self._config["limits"]["y"][1]
                 )
-        if "textfield" in self._config:
-            prefix = self._config["textfield"].get("prefix", "")
-            var = self._config["textfield"].get("var", "time")
-            round_digits = self._config["textfield"].get("round", 2)
-            suffix = self._config["textfield"].get("suffix", "")
+        # Handle textfields
+        if "textfields" in self._config:
+            for textfield_config in self._config["textfields"]:
+                self._add_textfield(ax, textfield_config)
 
-            if "unit" in self._config["textfield"]:
-                self._data = convert_units(
-                    self._data, [var], self._config["textfield"]["unit"]
-                )
-
-            value = self._data[var][-1] if var in self._data else ""
-
-            text = f"{prefix}{value:.{round_digits}f}{suffix}"
-            x = self._config["textfield"].get("x", 0.05)
-            y = self._config["textfield"].get("y", 0.95)
-            fontsize = self._config["textfield"].get("fontsize", 10)
-            ax.text(
-                x,
-                y,
-                text,
-                transform=ax.transAxes,
-                fontsize=fontsize,
-                verticalalignment="top",
-                bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
-            )
         self.finalize(fig, ax)
+
+    def _add_textfield(self, ax, textfield_config):
+        """Add a single textfield to the plot"""
+        prefix = textfield_config.get("prefix", "")
+        var = textfield_config.get("var", "time")
+        round_digits = textfield_config.get("round", 2)
+        suffix = textfield_config.get("suffix", "")
+
+        if "unit" in textfield_config:
+            self._data = convert_units(self._data, [var], textfield_config["unit"])
+
+        value = self._data[var][-1] if var in self._data else ""
+
+        text = f"{prefix}{value:.{round_digits}f}{suffix}"
+        x = textfield_config.get("x", 0.05)
+        y = textfield_config.get("y", 0.95)
+        fontsize = textfield_config.get("fontsize", 10)
+        ax.text(
+            x,
+            y,
+            text,
+            transform=ax.transAxes,
+            fontsize=fontsize,
+            verticalalignment="top",
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+        )
 
 
 class ScatterPlot(BasePlot):
