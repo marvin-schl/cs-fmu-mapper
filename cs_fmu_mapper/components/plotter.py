@@ -201,6 +201,10 @@ class Plotter(SimulationComponent):
                     ),  # Add ylabel for better labeling
                 }
 
+                # Add textfields if they exist
+                if "textfields" in plot_config:
+                    plot_data["textfields"] = plot_config["textfields"]
+
                 # Convert units if specified
                 if "xUnit" in plot_config.keys():
                     plot_data["data"] = convert_units(
@@ -581,6 +585,11 @@ class PlotlyInteractivePlot(BasePlot):
             if "y" in self._config["limits"]:
                 fig.update_yaxes(range=self._config["limits"]["y"])
 
+        # Handle textfields
+        if "textfields" in self._config:
+            for textfield_config in self._config["textfields"]:
+                self._add_textfield_plotly(fig, textfield_config)
+
         # Save as HTML file
         output_path = os.path.join(
             self._config["path"], self._title.replace(" ", "_") + "_interactive.html"
@@ -590,6 +599,45 @@ class PlotlyInteractivePlot(BasePlot):
         # Store the figure for later display
         if "figures_to_show" in self._config:
             self._config["figures_to_show"].append(fig)
+
+    def _add_textfield_plotly(self, fig, textfield_config):
+        """Add a single textfield annotation to the Plotly plot"""
+        prefix = textfield_config.get("prefix", "")
+        var = textfield_config.get("var", "time")
+        round_digits = textfield_config.get("round", 2)
+        suffix = textfield_config.get("suffix", "")
+
+        if "unit" in textfield_config:
+            self._data = convert_units(self._data, [var], textfield_config["unit"])
+
+        value = self._data[var][-1] if var in self._data else ""
+
+        text = f"{prefix}{value:.{round_digits}f}{suffix}"
+        x = textfield_config.get("x", 0.05)
+        y = textfield_config.get("y", 0.95)
+        fontsize = textfield_config.get("fontsize", 10)
+
+        # Convert relative coordinates to absolute coordinates for Plotly
+        # Plotly uses absolute coordinates (0-1) for annotations
+        x_abs = x
+        y_abs = y
+
+        # Add annotation to the figure
+        fig.add_annotation(
+            x=x_abs,
+            y=y_abs,
+            xref="paper",  # Use paper coordinates (0-1)
+            yref="paper",  # Use paper coordinates (0-1)
+            text=text,
+            showarrow=False,
+            font=dict(size=fontsize),
+            bgcolor="rgba(255,255,255,0.7)",
+            bordercolor="lightgray",
+            borderwidth=1,
+            align="left",
+            xanchor="left",
+            yanchor="top",
+        )
 
 
 class PlotlyMultiPlot:
@@ -670,6 +718,13 @@ class PlotlyMultiPlot:
 
                 fig.add_trace(trace, row=row, col=1)
 
+            # Handle textfields for this plot if they exist
+            if "textfields" in plot_data:
+                for textfield_config in plot_data["textfields"]:
+                    self._add_textfield_multi_plot(
+                        fig, textfield_config, row, plot_data["data"]
+                    )
+
         # Calculate height based on number of plots (minimum 300px per plot)
         plot_height = max(300, 8000 // n_plots)  # Ensure minimum height per plot
         total_height = plot_height * n_plots
@@ -729,6 +784,45 @@ class PlotlyMultiPlot:
         # This allows each plot to have its own y-axis range
 
         return fig
+
+    def _add_textfield_multi_plot(self, fig, textfield_config, row, data):
+        """Add a single textfield annotation to a specific subplot in the multi-plot"""
+        prefix = textfield_config.get("prefix", "")
+        var = textfield_config.get("var", "time")
+        round_digits = textfield_config.get("round", 2)
+        suffix = textfield_config.get("suffix", "")
+
+        if "unit" in textfield_config:
+            data = convert_units(data, [var], textfield_config["unit"])
+
+        value = data[var][-1] if var in data else ""
+
+        text = f"{prefix}{value:.{round_digits}f}{suffix}"
+        x = textfield_config.get("x", 0.05)
+        y = textfield_config.get("y", 0.95)
+        fontsize = textfield_config.get("fontsize", 10)
+
+        # For multi-plot, we need to position the annotation relative to the specific subplot
+        # Convert the relative coordinates to the subplot's coordinate system
+        x_abs = x
+        y_abs = y
+
+        # Add annotation to the specific subplot
+        fig.add_annotation(
+            x=x_abs,
+            y=y_abs,
+            xref=f"x{row}",  # Reference the specific subplot's x-axis
+            yref=f"y{row}",  # Reference the specific subplot's y-axis
+            text=text,
+            showarrow=False,
+            font=dict(size=fontsize),
+            bgcolor="rgba(255,255,255,0.7)",
+            bordercolor="lightgray",
+            borderwidth=1,
+            align="left",
+            xanchor="left",
+            yanchor="top",
+        )
 
 
 class PlotFactory:
