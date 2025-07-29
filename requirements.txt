@@ -9,3 +9,4 @@ omegaconf>=2.4.0.dev3
 jinja2>=3.1.2
 PyYAML
 tqdm
+plotly

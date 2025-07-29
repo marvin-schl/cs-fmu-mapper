@@ -71,6 +71,7 @@ Plotter:
   type: plotter
   outputFolder: example/results/
   mergePlot: true #optional, true for generating a single pdf with all plots
+  interactiveDashboard: true #optional, true for generating an interactive dashboard with plotly
   usetex: false #optional, true for use of Latex renderer
   fontfamily: sans-serif #optional, serif for latex style font
   inputVar:
