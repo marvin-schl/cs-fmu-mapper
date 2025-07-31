@@ -304,6 +304,11 @@ def convert_units(data: dict, vars: list, unit_config: dict):
         conversion_factor = 1 / 3600000
     elif from_unit == "kWh" and to_unit == "J":
         conversion_factor = 3600000
+    # Gradient
+    elif from_unit == "K/s" and to_unit == "K/h":
+        conversion_factor = 3600
+    elif from_unit == "K/h" and to_unit == "K/s":
+        conversion_factor = 1 / 3600
 
     for var in vars:
         data[var] = [
