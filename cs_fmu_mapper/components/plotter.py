@@ -199,6 +199,9 @@ class Plotter(SimulationComponent):
                     "ylabel": plot_config.get(
                         "ylabel", "Value"
                     ),  # Add ylabel for better labeling
+                    "xlabel": plot_config.get(
+                        "xlabel", "Time"
+                    ),  # Add xlabel from config
                 }
 
                 # Add textfields if they exist
@@ -571,6 +574,11 @@ class PlotlyInteractivePlot(BasePlot):
             showline=True,
             linewidth=1,
             linecolor="black",
+            showticklabels=True,
+            tickmode="auto",
+            nticks=10,
+            tickformat=".1f",
+            tickangle=0,
         )
 
         fig.update_yaxes(
@@ -581,6 +589,10 @@ class PlotlyInteractivePlot(BasePlot):
             showline=True,
             linewidth=1,
             linecolor="black",
+            showticklabels=True,
+            tickmode="auto",
+            nticks=8,
+            tickformat=".2f",
         )
 
         # Set axis limits if specified
@@ -753,8 +765,10 @@ class PlotlyMultiPlot:
         # Update all subplot axes for better appearance
         for i in range(1, n_plots + 1):
             # X-axis (time) - synchronized across all plots
+            # Use xlabel from the plot config, fallback to "Time" if not specified
+            xlabel = plots_to_use[i - 1].get("xlabel", "Time")
             fig.update_xaxes(
-                title_text="Time",
+                title_text=clean_axis_label(xlabel),
                 row=i,
                 col=1,
                 showgrid=True,
@@ -764,6 +778,11 @@ class PlotlyMultiPlot:
                 showline=True,
                 linewidth=1,
                 linecolor="black",
+                showticklabels=True,
+                tickmode="auto",
+                nticks=10,
+                tickformat=".1f",
+                tickangle=0,
             )
 
             # Y-axis - individual for each plot
@@ -779,6 +798,10 @@ class PlotlyMultiPlot:
                 showline=True,
                 linewidth=1,
                 linecolor="black",
+                showticklabels=True,
+                tickmode="auto",
+                nticks=8,
+                tickformat=".2f",
             )
 
         # Synchronize all x-axes (time axis) for zooming and panning
