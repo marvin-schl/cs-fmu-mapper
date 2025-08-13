@@ -13,6 +13,8 @@ from cs_fmu_mapper.components.simulation_component import SimulationComponent
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
+import matplotlib.patches as patches
+from matplotlib.table import Table
 
 
 def clean_axis_label(label):
@@ -187,58 +189,234 @@ class Plotter(SimulationComponent):
 
         # Collect plot data for multi-plot
         plots_data = []
+        table_plots = []
 
         for plot_name, plot_config in self._config["plots"].items():
-            if "type" in plot_config.keys() and plot_config["type"] == "time_series":
-                # Prepare data for this plot
-                plot_data = {
-                    "title": plot_config["title"],
-                    "vars": plot_config["vars"],
-                    "data": self._data.copy(),
-                    "legend": plot_config.get("legend", plot_config["vars"]),
-                    "ylabel": plot_config.get(
-                        "ylabel", "Value"
-                    ),  # Add ylabel for better labeling
-                    "xlabel": plot_config.get(
-                        "xlabel", "Time"
-                    ),  # Add xlabel from config
-                }
+            if "type" in plot_config.keys():
+                if plot_config["type"] == "time_series":
+                    # Prepare data for time series plot
+                    plot_data = {
+                        "title": plot_config["title"],
+                        "vars": plot_config["vars"],
+                        "data": self._data.copy(),
+                        "legend": plot_config.get("legend", plot_config["vars"]),
+                        "ylabel": plot_config.get("ylabel", "Value"),
+                        "xlabel": plot_config.get("xlabel", "Time"),
+                        "type": "time_series",
+                    }
 
-                # Add textfields if they exist
-                if "textfields" in plot_config:
-                    plot_data["textfields"] = plot_config["textfields"]
+                    # Add textfields if they exist
+                    if "textfields" in plot_config:
+                        plot_data["textfields"] = plot_config["textfields"]
 
-                # Convert units if specified
-                if "xUnit" in plot_config.keys():
-                    plot_data["data"] = convert_units(
-                        plot_data["data"], ["time"], plot_config["xUnit"]
-                    )
-                if "yUnit" in plot_config.keys():
-                    plot_data["data"] = convert_units(
-                        plot_data["data"], plot_config["vars"], plot_config["yUnit"]
-                    )
+                    # Convert units if specified
+                    if "xUnit" in plot_config.keys():
+                        plot_data["data"] = convert_units(
+                            plot_data["data"], ["time"], plot_config["xUnit"]
+                        )
+                    if "yUnit" in plot_config.keys():
+                        plot_data["data"] = convert_units(
+                            plot_data["data"], plot_config["vars"], plot_config["yUnit"]
+                        )
 
-                plots_data.append(plot_data)
+                    plots_data.append(plot_data)
 
-        if not plots_data:
-            self._log.warning("No time series plots found for interactive dashboard")
+                elif plot_config["type"] == "table":
+                    # Store table plots separately
+                    table_plots.append(plot_config)
+
+        if not plots_data and not table_plots:
+            self._log.warning("No plots found for interactive dashboard")
             return
 
+        # Count time series and table plots
+        time_series_count = sum(1 for p in plots_data if p.get("type") == "time_series")
+        table_count = len(table_plots)
+
         self._log.info(
-            f"Creating interactive dashboard with {len(plots_data)} plots..."
+            f"Creating interactive dashboard with {time_series_count} time series plots and {table_count} table plots..."
         )
 
-        # Create multi-plot dashboard
-        multi_plot = PlotlyMultiPlot(plots_data, self._config)
-        fig = multi_plot.create_multi_plot()
+        # Create separate figures for time series plots and tables
+        if plots_data:
+            # Create multi-plot for time series plots
+            multi_plot = PlotlyMultiPlot(plots_data, self._config)
+            time_series_fig = multi_plot.create_multi_plot()
+        else:
+            time_series_fig = None
+
+        # Create separate figure for tables
+        if table_plots:
+            # Prepare all table data first
+            prepared_tables = [
+                (table_plot, self._prepare_table_data_for_dashboard(table_plot))
+                for table_plot in table_plots
+            ]
+
+            # Compute dynamic heights per table (base + per-row)
+            per_table_heights = []
+            for _, td in prepared_tables:
+                rows = len(td["data"]) if td["data"] else 1
+                per_table_heights.append(200 + rows * 40)
+
+            total_height = max(sum(per_table_heights), 300)
+            # Normalize for row_heights; avoid zero division
+            height_sum = sum(per_table_heights) if sum(per_table_heights) > 0 else 1
+            row_heights = [h / height_sum for h in per_table_heights]
+
+            # Create subplots: one row per table, with per-table titles from config
+            table_fig = make_subplots(
+                rows=len(prepared_tables),
+                cols=1,
+                specs=[[{"type": "table"}] for _ in prepared_tables],
+                subplot_titles=[
+                    clean_axis_label(tp.get("title", f"Table {i+1}"))
+                    for i, (tp, _) in enumerate(prepared_tables)
+                ],
+                vertical_spacing=0.08,
+                row_heights=row_heights,
+                shared_xaxes=False,
+            )
+
+            # Add each table as its own subplot
+            for i, (table_plot, table_data) in enumerate(prepared_tables):
+                # Transpose rows -> columns for Plotly Table
+                if table_data["data"]:
+                    columns_data = list(map(list, zip(*table_data["data"])))
+                else:
+                    columns_data = [[] for _ in table_data["headers"]]
+
+                # Apply styling from table_properties
+                table_props = table_plot.get("table_properties", {})
+                header_color = table_props.get("header_color", "#4CAF50")
+                row_colors = table_props.get(
+                    "row_colors", ["#f2f2f2"]
+                )  # default single color
+                font_size = table_props.get("font_size", 11)
+                row_height_scale = table_props.get("row_height", None)
+                # Map scale to pixels if provided
+                cells_height = (
+                    int(18 * row_height_scale)
+                    if isinstance(row_height_scale, (int, float))
+                    else None
+                )
+                nrows = len(table_data["data"]) if table_data["data"] else 0
+                ncols = len(table_data["headers"]) if table_data["headers"] else 0
+                if nrows > 0 and ncols > 0:
+                    alternating_colors = [
+                        row_colors[r % len(row_colors)] for r in range(nrows)
+                    ]
+                    cells_fill_color = [list(alternating_colors) for _ in range(ncols)]
+                else:
+                    cells_fill_color = row_colors[0] if row_colors else "#f2f2f2"
+
+                # Optional column widths
+                column_widths = table_props.get("column_widths")
+                if isinstance(column_widths, list) and ncols > 0:
+                    if len(column_widths) < ncols:
+                        column_widths = column_widths + [1] * (
+                            ncols - len(column_widths)
+                        )
+                    elif len(column_widths) > ncols:
+                        column_widths = column_widths[:ncols]
+                else:
+                    column_widths = None
+
+                table_fig.add_trace(
+                    go.Table(
+                        columnwidth=column_widths,
+                        header=dict(
+                            values=table_data["headers"],
+                            fill_color=header_color,
+                            align="center",
+                            line_color=table_props.get("grid_color", "#CCCCCC"),
+                            line_width=table_props.get("grid_width", 1),
+                            font=dict(color="white", size=font_size),
+                        ),
+                        cells=dict(
+                            values=columns_data,
+                            fill_color=cells_fill_color,
+                            align="center",
+                            line_color=table_props.get("grid_color", "#CCCCCC"),
+                            line_width=table_props.get("grid_width", 1),
+                            font=dict(size=font_size),
+                            height=cells_height,
+                        ),
+                    ),
+                    row=i + 1,
+                    col=1,
+                )
+
+            # Update layout (use overall height; individual titles are set as subplot_titles)
+            table_fig.update_layout(
+                height=total_height,
+                width=None,
+                margin=dict(l=50, r=50, t=80, b=50),
+                showlegend=False,
+            )
+        else:
+            table_fig = None
 
         # Save interactive dashboard
         dashboard_path = os.path.join(self._output_path, "interactive_dashboard.html")
-        pyo.plot(fig, filename=dashboard_path, auto_open=False)
+
+        # Create HTML with both figures
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Interactive Dashboard</title>
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .plot-container { margin-bottom: 30px; }
+                h1 { color: #333; text-align: center; }
+                h2 { color: #555; margin-top: 30px; }
+            </style>
+        </head>
+        <body>
+            <h1>Interactive Dashboard</h1>
+        """
+
+        if time_series_fig:
+            # Convert figure to JSON and embed in HTML
+            time_series_json = time_series_fig.to_json()
+            html_content += f"""
+            <div class="plot-container">
+                <h2>Time Series Plots</h2>
+                <div id="timeSeriesPlot"></div>
+            </div>
+            <script>
+                var timeSeriesData = {time_series_json};
+                Plotly.newPlot('timeSeriesPlot', timeSeriesData.data, timeSeriesData.layout);
+            </script>
+            """
+
+        if table_fig:
+            # Convert figure to JSON and embed in HTML
+            table_json = table_fig.to_json()
+            html_content += f"""
+            <div class="plot-container">
+                <h2>Data Tables</h2>
+                <div id="tablePlot"></div>
+            </div>
+            <script>
+                var tableData = {table_json};
+                Plotly.newPlot('tablePlot', tableData.data, tableData.layout);
+            </script>
+            """
+
+        html_content += """
+        </body>
+        </html>
+        """
+
+        with open(dashboard_path, "w") as f:
+            f.write(html_content)
 
         self._log.info(f"Interactive dashboard saved to: {dashboard_path}")
         self._log.info(
-            f"Dashboard contains {len(plots_data)} plots with synchronized x-axis zooming"
+            f"Dashboard contains {time_series_count} time series plots with synchronized x-axis zooming and {table_count} table plots"
         )
 
         # Automatically open in browser
@@ -249,7 +427,130 @@ class Plotter(SimulationComponent):
             self._log.warning(f"Could not automatically open browser: {e}")
             self._log.info(f"Please manually open: {dashboard_path}")
 
-        return fig
+        return time_series_fig if time_series_fig else table_fig
+
+    def _prepare_table_data_for_dashboard(self, table_plot):
+        """Prepare table data for dashboard tables (combine loop and manual rows)"""
+        headers = None
+        data: list[list[str]] = []
+
+        # Loop rows first (if any)
+        if "loop_data" in table_plot:
+            loop_config = table_plot["loop_data"]
+            loop_headers = loop_config.get("headers", ["Description", "Value", "Unit"])
+            headers = headers or loop_headers
+
+            loop_var = loop_config.get("loop_var", [])
+            if not loop_var:
+                data.append(["No loop data specified", "", ""])  # placeholder
+            else:
+                rows = []
+                for item in loop_var:
+                    row_data = []
+                    for col_template in loop_config.get("columns", []):
+                        if isinstance(col_template, dict):
+                            if "template" in col_template:
+                                template = col_template["template"]
+                                processed_value = template.replace(
+                                    "{{item}}", str(item)
+                                ).replace("{item}", str(item))
+
+                                if "var_template" in col_template:
+                                    var_template = col_template["var_template"]
+                                    var_name = var_template.replace(
+                                        "{{item}}", str(item)
+                                    ).replace("{item}", str(item))
+                                    if (
+                                        var_name in self._data
+                                        and len(self._data[var_name]) > 0
+                                    ):
+                                        value = self._data[var_name][-1]
+                                        if "unit" in col_template:
+                                            temp_data = {var_name: [value]}
+                                            temp_data = convert_units(
+                                                temp_data,
+                                                [var_name],
+                                                col_template["unit"],
+                                            )
+                                            value = temp_data[var_name][0]
+                                        round_digits = col_template.get("round", 2)
+                                        value = f"{value:.{round_digits}f}"
+                                        prefix = col_template.get("prefix", "")
+                                        suffix = col_template.get("suffix", "")
+                                        value = f"{prefix}{value}{suffix}"
+                                        processed_value = processed_value.replace(
+                                            "{{value}}", str(value)
+                                        ).replace("{value}", str(value))
+                                    else:
+                                        processed_value = processed_value.replace(
+                                            "{{value}}",
+                                            col_template.get("default", "N/A"),
+                                        ).replace(
+                                            "{value}",
+                                            col_template.get("default", "N/A"),
+                                        )
+
+                                row_data.append(processed_value)
+                            else:
+                                row_data.append(col_template.get("value", ""))
+                        else:
+                            row_data.append(str(col_template))
+                    rows.append(row_data)
+                data.extend(rows)
+
+        # Manual rows next (if any)
+        if "manual_data" in table_plot:
+            manual_data = table_plot["manual_data"]
+            manual_headers = manual_data.get(
+                "headers", ["Description", "Value", "Unit"]
+            )
+            headers = headers or manual_headers
+
+            rows = []
+            for row in manual_data.get("rows", []):
+                row_data = []
+                for col in row:
+                    if isinstance(col, dict):
+                        if "var" in col:
+                            var_name = col["var"]
+                            if var_name in self._data and len(self._data[var_name]) > 0:
+                                value = self._data[var_name][-1]
+                                if "unit" in col:
+                                    temp_data = {var_name: [value]}
+                                    temp_data = convert_units(
+                                        temp_data, [var_name], col["unit"]
+                                    )
+                                    value = temp_data[var_name][0]
+                                round_digits = col.get("round", 2)
+                                value = f"{value:.{round_digits}f}"
+                                prefix = col.get("prefix", "")
+                                suffix = col.get("suffix", "")
+                                value = f"{prefix}{value}{suffix}"
+                                row_data.append(value)
+                            else:
+                                row_data.append(col.get("default", "N/A"))
+                        else:
+                            row_data.append(col.get("value", ""))
+                    else:
+                        row_data.append(str(col))
+                rows.append(row_data)
+            data.extend(rows)
+
+        # Fallbacks and normalization
+        if headers is None:
+            headers = ["Description", "Value", "Unit"]
+        expected_cols = len(headers)
+        normalized = []
+        for row in data:
+            if len(row) < expected_cols:
+                normalized.append(row + [""] * (expected_cols - len(row)))
+            else:
+                normalized.append(row[:expected_cols])
+
+        if not normalized:
+            normalized = [["No data available", "", ""]]
+
+        return {"headers": headers, "data": normalized}
 
 
 def convert_units(data: dict, vars: list, unit_config: dict):
@@ -340,15 +641,18 @@ class BasePlot(ABC):
             ax.legend()
 
         # Clean axis labels to use proper Unicode symbols
-        xlabel = clean_axis_label(self._config["xlabel"])
-        ylabel = clean_axis_label(self._config["ylabel"])
+        # Handle cases where xlabel/ylabel might not be configured (e.g., table plots)
+        xlabel = clean_axis_label(self._config.get("xlabel", ""))
+        ylabel = clean_axis_label(self._config.get("ylabel", ""))
         title = clean_axis_label(self._config["title"])
 
-        ax.set(
-            xlabel=xlabel,
-            ylabel=ylabel,
-            title=title,
-        )
+        # Only set labels if they are provided
+        if xlabel:
+            ax.set_xlabel(xlabel)
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        ax.set_title(title)
+
         if "grid" in self._config and self._config["grid"]:
             ax.grid(True, which="major", linewidth="0.5", color="black", alpha=0.4)
         if "subgrid" in self._config and self._config["subgrid"]:
@@ -433,12 +737,24 @@ class TimeSeriesPlot(BasePlot):
         round_digits = textfield_config.get("round", 2)
         suffix = textfield_config.get("suffix", "")
 
-        if "unit" in textfield_config:
-            self._data = convert_units(self._data, [var], textfield_config["unit"])
+        # Obtain last value safely, with optional unit conversion on a temp value
+        if var in self._data and len(self._data[var]) > 0:
+            value = self._data[var][-1]
+            if "unit" in textfield_config:
+                temp_data = {var: [value]}
+                temp_data = convert_units(temp_data, [var], textfield_config["unit"])
+                value = temp_data[var][0]
+        else:
+            value = textfield_config.get("default", "N/A")
 
-        value = self._data[var][-1] if var in self._data else ""
+        # Format number if possible, else use string representation
+        try:
+            numeric_value = float(value)
+            formatted_value = f"{numeric_value:.{round_digits}f}"
+        except (TypeError, ValueError):
+            formatted_value = str(value)
 
-        text = f"{prefix}{value:.{round_digits}f}{suffix}"
+        text = f"{prefix}{formatted_value}{suffix}"
         x = textfield_config.get("x", 0.05)
         y = textfield_config.get("y", 0.95)
         fontsize = textfield_config.get("fontsize", 10)
@@ -446,9 +762,9 @@ class TimeSeriesPlot(BasePlot):
             x,
             y,
             text,
-            transform=ax.transAxes,
             fontsize=fontsize,
             verticalalignment="top",
+            transform=ax.transAxes,
             bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
         )
 
@@ -624,27 +940,34 @@ class PlotlyInteractivePlot(BasePlot):
         round_digits = textfield_config.get("round", 2)
         suffix = textfield_config.get("suffix", "")
 
-        if "unit" in textfield_config:
-            self._data = convert_units(self._data, [var], textfield_config["unit"])
+        # Obtain last value safely, with optional unit conversion on a temp value
+        if var in self._data and len(self._data[var]) > 0:
+            value = self._data[var][-1]
+            if "unit" in textfield_config:
+                temp_data = {var: [value]}
+                temp_data = convert_units(temp_data, [var], textfield_config["unit"])
+                value = temp_data[var][0]
+        else:
+            value = textfield_config.get("default", "N/A")
 
-        value = self._data[var][-1] if var in self._data else ""
+        # Format number if possible, else use string representation
+        try:
+            numeric_value = float(value)
+            formatted_value = f"{numeric_value:.{round_digits}f}"
+        except (TypeError, ValueError):
+            formatted_value = str(value)
 
-        text = f"{prefix}{value:.{round_digits}f}{suffix}"
+        text = f"{prefix}{formatted_value}{suffix}"
         x = textfield_config.get("x", 0.05)
         y = textfield_config.get("y", 0.95)
         fontsize = textfield_config.get("fontsize", 10)
 
-        # Convert relative coordinates to absolute coordinates for Plotly
-        # Plotly uses absolute coordinates (0-1) for annotations
-        x_abs = x
-        y_abs = y
-
-        # Add annotation to the figure
+        # Add annotation relative to the plot's data area (domain)
         fig.add_annotation(
-            x=x_abs,
-            y=y_abs,
-            xref="paper",  # Use paper coordinates (0-1)
-            yref="paper",  # Use paper coordinates (0-1)
+            x=x,
+            y=y,
+            xref="x domain",
+            yref="y domain",
             text=text,
             showarrow=False,
             font=dict(size=fontsize),
@@ -655,6 +978,632 @@ class PlotlyInteractivePlot(BasePlot):
             xanchor="left",
             yanchor="top",
         )
+
+
+class TablePlot(BasePlot):
+    """Table plot for displaying values and descriptions"""
+
+    def __init__(self, data, config):
+        super().__init__(data, config)
+
+    def generate(self):
+        # Prepare table data
+        table_data = self._prepare_table_data()
+
+        # Ensure we have valid data before creating the table
+        if not table_data["data"] or len(table_data["data"]) == 0:
+            # Create a simple figure with a message instead of a table
+            fig, ax = plt.subplots(figsize=(12, 8))
+            ax.axis("off")
+            ax.text(
+                0.5,
+                0.5,
+                "No data available for table",
+                ha="center",
+                va="center",
+                fontsize=16,
+                transform=ax.transAxes,
+            )
+            ax.set_title(self._title, pad=20, fontsize=16, fontweight="bold")
+            self.finalize(fig, ax, filetypes=["pdf", "png"])
+            return
+
+        # Ensure we have at least one row with data
+        has_data = False
+        for row in table_data["data"]:
+            if any(cell != "" and cell != "N/A" for cell in row):
+                has_data = True
+                break
+
+        if not has_data:
+            # Create a simple figure with a message instead of a table
+            fig, ax = plt.subplots(figsize=(12, 8))
+            ax.axis("off")
+            ax.text(
+                0.5,
+                0.5,
+                "No data available for table",
+                ha="center",
+                va="center",
+                fontsize=16,
+                transform=ax.transAxes,
+            )
+            ax.set_title(self._title, pad=20, fontsize=16, fontweight="bold")
+            self.finalize(fig, ax, filetypes=["pdf", "png"])
+            return
+
+        # Validate that all rows have the same number of columns
+        expected_cols = len(table_data["headers"])
+        for i, row in enumerate(table_data["data"]):
+            if len(row) != expected_cols:
+                # Pad or truncate row to match header length
+                if len(row) < expected_cols:
+                    table_data["data"][i] = row + [""] * (expected_cols - len(row))
+                else:
+                    table_data["data"][i] = row[:expected_cols]
+
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.axis("tight")
+        ax.axis("off")
+
+        # Create table
+        table = ax.table(
+            cellText=table_data["data"],
+            colLabels=table_data["headers"],
+            cellLoc="center",
+            loc="center",
+            bbox=[0, 0, 1, 1],
+        )
+
+        # Style the table
+        self._style_table(table)
+
+        # Set title
+        ax.set_title(self._title, pad=20, fontsize=16, fontweight="bold")
+
+        self.finalize(fig, ax, filetypes=["pdf", "png"])
+
+    def _prepare_table_data(self):
+        """Prepare table data from configuration. Supports combining loop_data and manual_data."""
+        headers = None
+        data: list[list[str]] = []
+
+        # 1) Loop rows (if any)
+        if "loop_data" in self._config:
+            loop_config = self._config["loop_data"]
+            loop_headers = loop_config.get("headers", ["Description", "Value", "Unit"])
+            headers = headers or loop_headers
+
+            loop_var = loop_config.get("loop_var", [])
+            if not loop_var:
+                data.append(["No loop data specified", "", ""])  # placeholder row
+            else:
+                rows = []
+                for item in loop_var:
+                    row_data = []
+                    for col_template in loop_config.get("columns", []):
+                        if isinstance(col_template, dict):
+                            if "template" in col_template:
+                                template = col_template["template"]
+                                processed_value = (
+                                    template.replace("{{item}}", str(item))
+                                    .replace("{item}", str(item))
+                                    .replace("{value}", str(item))
+                                )
+
+                                if "var_template" in col_template:
+                                    var_template = col_template["var_template"]
+                                    var_name = var_template.replace(
+                                        "{{item}}", str(item)
+                                    ).replace("{item}", str(item))
+                                    if (
+                                        var_name in self._data
+                                        and len(self._data[var_name]) > 0
+                                    ):
+                                        value = self._data[var_name][-1]
+                                        if "unit" in col_template:
+                                            temp_data = {var_name: [value]}
+                                            temp_data = convert_units(
+                                                temp_data,
+                                                [var_name],
+                                                col_template["unit"],
+                                            )
+                                            value = temp_data[var_name][0]
+                                        round_digits = col_template.get("round", 2)
+                                        value = f"{value:.{round_digits}f}"
+                                        prefix = col_template.get("prefix", "")
+                                        suffix = col_template.get("suffix", "")
+                                        value = f"{prefix}{value}{suffix}"
+                                        processed_value = processed_value.replace(
+                                            "{{value}}", str(value)
+                                        ).replace("{value}", str(value))
+                                    else:
+                                        processed_value = processed_value.replace(
+                                            "{{value}}",
+                                            col_template.get("default", "N/A"),
+                                        ).replace(
+                                            "{value}",
+                                            col_template.get("default", "N/A"),
+                                        )
+
+                                row_data.append(processed_value)
+                            else:
+                                row_data.append(col_template.get("value", ""))
+                        else:
+                            row_data.append(str(col_template))
+                    rows.append(row_data)
+                data.extend(rows)
+
+        # 2) Manual rows (if any)
+        if "manual_data" in self._config:
+            manual_data = self._config["manual_data"]
+            manual_headers = manual_data.get(
+                "headers", ["Description", "Value", "Unit"]
+            )
+            headers = headers or manual_headers
+
+            rows = []
+            for row in manual_data.get("rows", []):
+                row_data = []
+                for col in row:
+                    if isinstance(col, dict):
+                        if "var" in col:
+                            var_name = col["var"]
+                            if var_name in self._data and len(self._data[var_name]) > 0:
+                                value = self._data[var_name][-1]
+                                if "unit" in col:
+                                    temp_data = {var_name: [value]}
+                                    temp_data = convert_units(
+                                        temp_data, [var_name], col["unit"]
+                                    )
+                                    value = temp_data[var_name][0]
+                                round_digits = col.get("round", 2)
+                                value = f"{value:.{round_digits}f}"
+                                prefix = col.get("prefix", "")
+                                suffix = col.get("suffix", "")
+                                value = f"{prefix}{value}{suffix}"
+                                row_data.append(value)
+                            else:
+                                row_data.append(col.get("default", "N/A"))
+                        else:
+                            row_data.append(col.get("value", ""))
+                    else:
+                        row_data.append(str(col))
+                rows.append(row_data)
+            data.extend(rows)
+
+        # 3) Fallbacks
+        if headers is None:
+            headers = ["Description", "Value", "Unit"]
+        if not data:
+            data = [["No data available", "", ""]]
+
+        return {"headers": headers, "data": data}
+
+    def _style_table(self, table):
+        """Apply styling to the table"""
+        try:
+            table_props = self._config.get("table_properties", {})
+
+            # Access cells as dict of (row, col) -> Cell
+            cells = (
+                table.get_celld()
+                if hasattr(table, "get_celld")
+                else getattr(table, "_cells", None)
+            )
+            if not cells:
+                return
+
+            # Determine existing row and column indices
+            row_indices = sorted({rc[0] for rc in cells.keys()})
+            col_indices = sorted({rc[1] for rc in cells.keys()})
+            if not row_indices or not col_indices:
+                return
+
+            header_row = min(row_indices)
+            last_row = max(row_indices)
+
+            # Colors and sizes
+            header_color = table_props.get("header_color", "#4CAF50")
+            row_colors = table_props.get("row_colors", ["#f2f2f2", "white"])
+            font_size = table_props.get("font_size", 10)
+
+            # Header styling
+            for c in col_indices:
+                cell = cells.get((header_row, c))
+                if cell is not None:
+                    cell.set_facecolor(header_color)
+                    cell.set_text_props(weight="bold", color="white")
+
+            # Body rows styling (alternating row colors)
+            for r in row_indices:
+                if r == header_row:
+                    continue
+                color = row_colors[(r - header_row) % len(row_colors)]
+                for c in col_indices:
+                    cell = cells.get((r, c))
+                    if cell is not None:
+                        cell.set_facecolor(color)
+                        cell.set_text_props(size=font_size)
+
+            # Optional: highlight the last row (e.g., manual summary)
+            last_row_color = table_props.get("last_row_color")
+            last_row_text_color = table_props.get("last_row_text_color")
+            if last_row_color and last_row > header_row:
+                for c in col_indices:
+                    cell = cells.get((last_row, c))
+                    if cell is not None:
+                        cell.set_facecolor(last_row_color)
+                        if last_row_text_color:
+                            cell.set_text_props(
+                                color=last_row_text_color, size=font_size
+                            )
+
+            # Optional: set column widths
+            col_widths = table_props.get("column_widths")
+            if isinstance(col_widths, list) and col_widths:
+                for i, width in enumerate(col_widths):
+                    for r in row_indices:
+                        cell = cells.get((r, i))
+                        if cell is not None:
+                            cell.set_width(width)
+
+            # General table properties
+            table.auto_set_font_size(False)
+            table.set_fontsize(font_size)
+            table.scale(1, table_props.get("row_height", 2))
+
+            # Grid line color/width and vertical centering
+            grid_color = table_props.get("grid_color")
+            grid_width = table_props.get("grid_width")
+            for cell in cells.values():
+                if grid_color is not None:
+                    cell.set_edgecolor(grid_color)
+                if grid_width is not None:
+                    try:
+                        cell.set_linewidth(float(grid_width))
+                    except Exception:
+                        pass
+                try:
+                    cell.get_text().set_va("center")
+                    cell.get_text().set_ha("center")
+                except Exception:
+                    pass
+        except Exception as e:
+            # If any error occurs during styling, just return without styling
+            # This prevents crashes and allows the table to be displayed without styling
+            pass
+
+
+class PlotlyTablePlot(BasePlot):
+    """Interactive Plotly table plot mirroring TablePlot behavior"""
+
+    def __init__(self, data, config):
+        super().__init__(data, config)
+
+    def generate(self):
+        # Prepare table data
+        table_data = self._prepare_table_data()
+
+        # If no data, render a message figure
+        if not table_data["data"] or len(table_data["data"]) == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                x=0.5,
+                y=0.5,
+                xref="paper",
+                yref="paper",
+                text="No data available for table",
+                showarrow=False,
+                font=dict(size=16),
+            )
+            fig.update_layout(
+                title=dict(
+                    text=clean_axis_label(self._title),
+                    x=0.5,
+                    xanchor="center",
+                    font=dict(size=16),
+                ),
+                height=400,
+                width=1000,
+                margin=dict(l=50, r=50, t=80, b=50),
+            )
+
+            output_path = os.path.join(
+                self._config["path"], self._title.replace(" ", "_") + "_table.html"
+            )
+            pyo.plot(fig, filename=output_path, auto_open=False)
+
+            if "figures_to_show" in self._config:
+                self._config["figures_to_show"].append(fig)
+            return fig
+
+        # Validate consistent column counts
+        expected_cols = len(table_data["headers"])
+        for i, row in enumerate(table_data["data"]):
+            if len(row) != expected_cols:
+                if len(row) < expected_cols:
+                    table_data["data"][i] = row + [""] * (expected_cols - len(row))
+                else:
+                    table_data["data"][i] = row[:expected_cols]
+
+        # Transpose rows to columns for Plotly Table
+        columns_data = (
+            list(map(list, zip(*table_data["data"])))
+            if table_data["data"]
+            else [[] for _ in table_data["headers"]]
+        )
+
+        # Apply styling from table_properties
+        table_props = self._config.get("table_properties", {})
+        header_color = table_props.get("header_color", "#4CAF50")
+        row_colors = table_props.get("row_colors", ["#f2f2f2"])  # default single color
+        font_size = table_props.get("font_size", 11)
+        row_height_scale = table_props.get("row_height", None)
+        cells_height = (
+            int(18 * row_height_scale)
+            if isinstance(row_height_scale, (int, float))
+            else None
+        )
+        nrows = len(table_data["data"]) if table_data["data"] else 0
+        ncols = len(table_data["headers"]) if table_data["headers"] else 0
+        if nrows > 0 and ncols > 0:
+            alternating_colors = [row_colors[r % len(row_colors)] for r in range(nrows)]
+            cells_fill_color = [list(alternating_colors) for _ in range(ncols)]
+        else:
+            cells_fill_color = row_colors[0] if row_colors else "#f2f2f2"
+
+        # Optional column widths
+        column_widths = table_props.get("column_widths")
+        if isinstance(column_widths, list) and ncols > 0:
+            if len(column_widths) < ncols:
+                column_widths = column_widths + [1] * (ncols - len(column_widths))
+            elif len(column_widths) > ncols:
+                column_widths = column_widths[:ncols]
+        else:
+            column_widths = None
+
+        fig = go.Figure(
+            data=[
+                go.Table(
+                    columnwidth=column_widths,
+                    header=dict(
+                        values=table_data["headers"],
+                        fill_color=header_color,
+                        align="center",
+                        line_color=table_props.get("grid_color", "#CCCCCC"),
+                        line_width=table_props.get("grid_width", 1),
+                        font=dict(color="white", size=font_size),
+                    ),
+                    cells=dict(
+                        values=columns_data,
+                        fill_color=cells_fill_color,
+                        align="center",
+                        line_color=table_props.get("grid_color", "#CCCCCC"),
+                        line_width=table_props.get("grid_width", 1),
+                        font=dict(size=font_size),
+                        height=cells_height,
+                    ),
+                )
+            ]
+        )
+
+        fig.update_layout(
+            title=dict(
+                text=clean_axis_label(self._title),
+                x=0.5,
+                xanchor="center",
+                font=dict(size=16),
+            ),
+            height=200 + len(table_data["data"]) * 40,
+            width=1000,
+            margin=dict(l=50, r=50, t=80, b=50),
+        )
+
+        output_path = os.path.join(
+            self._config["path"], self._title.replace(" ", "_") + "_table.html"
+        )
+        pyo.plot(fig, filename=output_path, auto_open=False)
+
+        if "figures_to_show" in self._config:
+            self._config["figures_to_show"].append(fig)
+
+        return fig
+
+    def _prepare_table_data(self):
+        """Prepare table data using the same semantics as TablePlot"""
+        headers = []
+        data = []
+
+        # Manual configuration
+        if "manual_data" in self._config:
+            manual_data = self._config["manual_data"]
+            headers = manual_data.get("headers", ["Description", "Value", "Unit"])
+
+            rows = []
+            for row in manual_data.get("rows", []):
+                row_data = []
+                for col in row:
+                    if isinstance(col, dict):
+                        if "var" in col:
+                            var_name = col["var"]
+                            if var_name in self._data and len(self._data[var_name]) > 0:
+                                value = self._data[var_name][-1]
+
+                                if "unit" in col:
+                                    temp_data = {var_name: [value]}
+                                    temp_data = convert_units(
+                                        temp_data, [var_name], col["unit"]
+                                    )
+                                    value = temp_data[var_name][0]
+
+                                round_digits = col.get("round", 2)
+                                value = f"{value:.{round_digits}f}"
+
+                                prefix = col.get("prefix", "")
+                                suffix = col.get("suffix", "")
+                                value = f"{prefix}{value}{suffix}"
+
+                                row_data.append(value)
+                            else:
+                                row_data.append(col.get("default", "N/A"))
+                        else:
+                            row_data.append(col.get("value", ""))
+                    else:
+                        row_data.append(str(col))
+                rows.append(row_data)
+            data = rows
+
+        # Loop configuration
+        elif "loop_data" in self._config:
+            loop_config = self._config["loop_data"]
+            headers = loop_config.get("headers", ["Description", "Value", "Unit"])
+            loop_var = loop_config.get("loop_var", [])
+            if not loop_var:
+                data = [["No loop data specified", "", ""]]
+            else:
+                rows = []
+                for item in loop_var:
+                    row_data = []
+                    for col_template in loop_config.get("columns", []):
+                        if isinstance(col_template, dict):
+                            if "template" in col_template:
+                                template = col_template["template"]
+                                processed_value = template.replace(
+                                    "{{item}}", str(item)
+                                ).replace("{item}", str(item))
+
+                                if "var_template" in col_template:
+                                    var_template = col_template["var_template"]
+                                    var_name = var_template.replace(
+                                        "{{item}}", str(item)
+                                    ).replace("{item}", str(item))
+                                    if (
+                                        var_name in self._data
+                                        and len(self._data[var_name]) > 0
+                                    ):
+                                        value = self._data[var_name][-1]
+
+                                        if "unit" in col_template:
+                                            temp_data = {var_name: [value]}
+                                            temp_data = convert_units(
+                                                temp_data,
+                                                [var_name],
+                                                col_template["unit"],
+                                            )
+                                            value = temp_data[var_name][0]
+
+                                        round_digits = col_template.get("round", 2)
+                                        value = f"{value:.{round_digits}f}"
+
+                                        prefix = col_template.get("prefix", "")
+                                        suffix = col_template.get("suffix", "")
+                                        value = f"{prefix}{value}{suffix}"
+
+                                        # Replace value placeholder in either style
+                                        processed_value = processed_value.replace(
+                                            "{{value}}", str(value)
+                                        ).replace("{value}", str(value))
+                                    else:
+                                        processed_value = processed_value.replace(
+                                            "{{value}}",
+                                            col_template.get("default", "N/A"),
+                                        ).replace(
+                                            "{value}",
+                                            col_template.get("default", "N/A"),
+                                        )
+
+                                row_data.append(processed_value)
+                            else:
+                                row_data.append(col_template.get("value", ""))
+                        else:
+                            row_data.append(str(col_template))
+                    rows.append(row_data)
+                data = rows
+
+        else:
+            headers = ["Description", "Value", "Unit"]
+            data = [["No data specified", "", ""]]
+
+        if not data:
+            data = [["No data available", "", ""]]
+
+        return {"headers": headers, "data": data}
+
+    def _style_table(self, table):
+        """Apply styling to the table (header, alternating rows, optional last-row highlight)."""
+        try:
+            table_props = self._config.get("table_properties", {})
+
+            # Prefer public accessor for cells
+            cells = (
+                table.get_celld()
+                if hasattr(table, "get_celld")
+                else getattr(table, "_cells", None)
+            )
+            if not cells:
+                return
+
+            # Discover row/col indices
+            row_indices = sorted({rc[0] for rc in cells.keys()})
+            col_indices = sorted({rc[1] for rc in cells.keys()})
+            if not row_indices or not col_indices:
+                return
+
+            header_row = min(row_indices)
+            last_row = max(row_indices)
+
+            header_color = table_props.get("header_color", "#4CAF50")
+            row_colors = table_props.get("row_colors", ["#f2f2f2", "white"])
+            font_size = table_props.get("font_size", 10)
+
+            # Header styling
+            for c in col_indices:
+                cell = cells.get((header_row, c))
+                if cell is not None:
+                    cell.set_facecolor(header_color)
+                    cell.set_text_props(weight="bold", color="white")
+
+            # Alternating row colors for body
+            for r in row_indices:
+                if r == header_row:
+                    continue
+                color = row_colors[(r - header_row) % len(row_colors)]
+                for c in col_indices:
+                    cell = cells.get((r, c))
+                    if cell is not None:
+                        cell.set_facecolor(color)
+                        cell.set_text_props(size=font_size)
+
+            # Optional: highlight last row
+            last_row_color = table_props.get("last_row_color")
+            last_row_text_color = table_props.get("last_row_text_color")
+            if last_row_color and last_row > header_row:
+                for c in col_indices:
+                    cell = cells.get((last_row, c))
+                    if cell is not None:
+                        cell.set_facecolor(last_row_color)
+                        if last_row_text_color:
+                            cell.set_text_props(
+                                color=last_row_text_color, size=font_size
+                            )
+
+            # Column widths
+            col_widths = table_props.get("column_widths")
+            if isinstance(col_widths, list) and col_widths:
+                for i, width in enumerate(col_widths):
+                    for r in row_indices:
+                        cell = cells.get((r, i))
+                        if cell is not None:
+                            cell.set_width(width)
+
+            # General props
+            table.auto_set_font_size(False)
+            table.set_fontsize(font_size)
+            table.scale(1, table_props.get("row_height", 2))
+        except Exception:
+            return
 
 
 class PlotlyMultiPlot:
@@ -813,6 +1762,147 @@ class PlotlyMultiPlot:
 
         return fig
 
+    def _prepare_table_data(self, table_plot):
+        """Prepare table data for a table plot"""
+        headers = None
+        data: list[list[str]] = []
+
+        # Loop rows first (if any)
+        if "loop_data" in table_plot:
+            loop_config = table_plot["loop_data"]
+            loop_headers = loop_config.get("headers", ["Description", "Value", "Unit"])
+            headers = headers or loop_headers
+
+            loop_var = loop_config.get("loop_var", [])
+            if not loop_var:
+                data.append(["No loop data specified", "", ""])  # placeholder row
+            else:
+                rows = []
+                for item in loop_var:
+                    row_data = []
+                    for col_template in loop_config.get("columns", []):
+                        if isinstance(col_template, dict):
+                            if "template" in col_template:
+                                template = col_template["template"]
+                                processed_value = (
+                                    template.replace("{{item}}", str(item))
+                                    .replace("{item}", str(item))
+                                    .replace("{value}", str(item))
+                                )
+
+                                if "var_template" in col_template:
+                                    var_template = col_template["var_template"]
+                                    var_name = var_template.replace(
+                                        "{{item}}", str(item)
+                                    ).replace("{item}", str(item))
+                                    if (
+                                        self._plots_data
+                                        and var_name in self._plots_data[0]["data"]
+                                        and len(self._plots_data[0]["data"][var_name])
+                                        > 0
+                                    ):
+                                        value = self._plots_data[0]["data"][var_name][
+                                            -1
+                                        ]
+
+                                        if "unit" in col_template:
+                                            temp_data = {var_name: [value]}
+                                            temp_data = convert_units(
+                                                temp_data,
+                                                [var_name],
+                                                col_template["unit"],
+                                            )
+                                            value = temp_data[var_name][0]
+
+                                        round_digits = col_template.get("round", 2)
+                                        value = f"{value:.{round_digits}f}"
+
+                                        prefix = col_template.get("prefix", "")
+                                        suffix = col_template.get("suffix", "")
+                                        value = f"{prefix}{value}{suffix}"
+
+                                        processed_value = processed_value.replace(
+                                            "{{value}}", str(value)
+                                        ).replace("{value}", str(value))
+                                    else:
+                                        processed_value = processed_value.replace(
+                                            "{{value}}",
+                                            col_template.get("default", "N/A"),
+                                        ).replace(
+                                            "{value}",
+                                            col_template.get("default", "N/A"),
+                                        )
+
+                                row_data.append(processed_value)
+                            else:
+                                row_data.append(col_template.get("value", ""))
+                        else:
+                            row_data.append(str(col_template))
+                    rows.append(row_data)
+                data.extend(rows)
+
+        # Manual rows next (if any)
+        if "manual_data" in table_plot:
+            manual_data = table_plot["manual_data"]
+            manual_headers = manual_data.get(
+                "headers", ["Description", "Value", "Unit"]
+            )
+            headers = headers or manual_headers
+
+            # Process manual rows
+            rows = []
+            for row in manual_data.get("rows", []):
+                row_data = []
+                for col in row:
+                    if isinstance(col, dict):
+                        # Handle dynamic values from data
+                        if "var" in col:
+                            var_name = col["var"]
+                            # Use the first plot's data as reference
+                            if (
+                                self._plots_data
+                                and var_name in self._plots_data[0]["data"]
+                                and len(self._plots_data[0]["data"][var_name]) > 0
+                            ):
+                                value = self._plots_data[0]["data"][var_name][
+                                    -1
+                                ]  # Get last value
+
+                                # Apply unit conversion if specified
+                                if "unit" in col:
+                                    temp_data = {var_name: [value]}
+                                    temp_data = convert_units(
+                                        temp_data, [var_name], col["unit"]
+                                    )
+                                    value = temp_data[var_name][0]
+
+                                # Apply rounding if specified
+                                round_digits = col.get("round", 2)
+                                value = f"{value:.{round_digits}f}"
+
+                                # Add prefix/suffix if specified
+                                prefix = col.get("prefix", "")
+                                suffix = col.get("suffix", "")
+                                value = f"{prefix}{value}{suffix}"
+
+                                row_data.append(value)
+                            else:
+                                row_data.append(col.get("default", "N/A"))
+                        else:
+                            row_data.append(col.get("value", ""))
+                    else:
+                        row_data.append(str(col))
+                rows.append(row_data)
+            data.extend(rows)
+
+        # Fallbacks
+        if headers is None:
+            headers = ["Description", "Value", "Unit"]
+        if not data:
+            data = [["No data available", "", ""]]
+
+        return {"headers": headers, "data": data}
+
     def _add_textfield_multi_plot(self, fig, textfield_config, row, data):
         """Add a single textfield annotation to a specific subplot in the multi-plot"""
         prefix = textfield_config.get("prefix", "")
@@ -820,27 +1910,37 @@ class PlotlyMultiPlot:
         round_digits = textfield_config.get("round", 2)
         suffix = textfield_config.get("suffix", "")
 
-        if "unit" in textfield_config:
-            data = convert_units(data, [var], textfield_config["unit"])
+        # Obtain last value safely, with optional unit conversion on a temp value
+        if var in data and len(data[var]) > 0:
+            value = data[var][-1]
+            if "unit" in textfield_config:
+                temp_data = {var: [value]}
+                temp_data = convert_units(temp_data, [var], textfield_config["unit"])
+                value = temp_data[var][0]
+        else:
+            value = textfield_config.get("default", "N/A")
 
-        value = data[var][-1] if var in data else ""
+        # Format number if possible, else use string representation
+        try:
+            numeric_value = float(value)
+            formatted_value = f"{numeric_value:.{round_digits}f}"
+        except (TypeError, ValueError):
+            formatted_value = str(value)
 
-        text = f"{prefix}{value:.{round_digits}f}{suffix}"
+        text = f"{prefix}{formatted_value}{suffix}"
         x = textfield_config.get("x", 0.05)
         y = textfield_config.get("y", 0.95)
         fontsize = textfield_config.get("fontsize", 10)
 
-        # For multi-plot, we need to position the annotation relative to the specific subplot
-        # Convert the relative coordinates to the subplot's coordinate system
-        x_abs = x
-        y_abs = y
-
-        # Add annotation to the specific subplot
+        # Add annotation to the specific subplot relative to its domain
+        axis_suffix = "" if row == 1 else str(row)
+        xref = f"x{axis_suffix} domain"
+        yref = f"y{axis_suffix} domain"
         fig.add_annotation(
-            x=x_abs,
-            y=y_abs,
-            xref=f"x{row}",  # Reference the specific subplot's x-axis
-            yref=f"y{row}",  # Reference the specific subplot's y-axis
+            x=x,
+            y=y,
+            xref=xref,
+            yref=yref,
             text=text,
             showarrow=False,
             font=dict(size=fontsize),
@@ -860,6 +1960,8 @@ class PlotFactory:
         "time_series": TimeSeriesPlot,
         "scatter": ScatterPlot,
         "plotly_interactive": PlotlyInteractivePlot,
+        "table": TablePlot,
+        "plotly_table": PlotlyTablePlot,
     }
 
     @staticmethod
