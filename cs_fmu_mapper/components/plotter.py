@@ -58,6 +58,32 @@ def clean_axis_label(label):
     return label
 
 
+def format_number(
+    value, round_digits=2, use_scientific=False, scientific_threshold=1e6
+):
+    """Format a number with optional scientific notation support
+
+    Args:
+        value: The numeric value to format
+        round_digits: Number of decimal places (default: 2)
+        use_scientific: Whether to use scientific notation (default: False)
+        scientific_threshold: Threshold above which to use scientific notation (default: 1e6)
+
+    Returns:
+        Formatted string representation of the number
+    """
+    try:
+        numeric_value = float(value)
+
+        # Use scientific notation if explicitly requested or if value exceeds threshold
+        if use_scientific or abs(numeric_value) >= scientific_threshold:
+            return f"{numeric_value:.{round_digits}e}"
+        else:
+            return f"{numeric_value:.{round_digits}f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
 class Plotter(SimulationComponent):
 
     type = "plotter"
@@ -474,7 +500,18 @@ class Plotter(SimulationComponent):
                                             )
                                             value = temp_data[var_name][0]
                                         round_digits = col_template.get("round", 2)
-                                        value = f"{value:.{round_digits}f}"
+                                        use_scientific = col_template.get(
+                                            "use_scientific", False
+                                        )
+                                        scientific_threshold = col_template.get(
+                                            "scientific_threshold", 1e6
+                                        )
+                                        value = format_number(
+                                            value,
+                                            round_digits,
+                                            use_scientific,
+                                            scientific_threshold,
+                                        )
                                         prefix = col_template.get("prefix", "")
                                         suffix = col_template.get("suffix", "")
                                         value = f"{prefix}{value}{suffix}"
@@ -522,7 +559,16 @@ class Plotter(SimulationComponent):
                                     )
                                     value = temp_data[var_name][0]
                                 round_digits = col.get("round", 2)
-                                value = f"{value:.{round_digits}f}"
+                                use_scientific = col.get("use_scientific", False)
+                                scientific_threshold = col.get(
+                                    "scientific_threshold", 1e6
+                                )
+                                value = format_number(
+                                    value,
+                                    round_digits,
+                                    use_scientific,
+                                    scientific_threshold,
+                                )
                                 prefix = col.get("prefix", "")
                                 suffix = col.get("suffix", "")
                                 value = f"{prefix}{value}{suffix}"
@@ -750,7 +796,11 @@ class TimeSeriesPlot(BasePlot):
         # Format number if possible, else use string representation
         try:
             numeric_value = float(value)
-            formatted_value = f"{numeric_value:.{round_digits}f}"
+            use_scientific = textfield_config.get("use_scientific", False)
+            scientific_threshold = textfield_config.get("scientific_threshold", 1e6)
+            formatted_value = format_number(
+                numeric_value, round_digits, use_scientific, scientific_threshold
+            )
         except (TypeError, ValueError):
             formatted_value = str(value)
 
@@ -953,7 +1003,11 @@ class PlotlyInteractivePlot(BasePlot):
         # Format number if possible, else use string representation
         try:
             numeric_value = float(value)
-            formatted_value = f"{numeric_value:.{round_digits}f}"
+            use_scientific = textfield_config.get("use_scientific", False)
+            scientific_threshold = textfield_config.get("scientific_threshold", 1e6)
+            formatted_value = format_number(
+                numeric_value, round_digits, use_scientific, scientific_threshold
+            )
         except (TypeError, ValueError):
             formatted_value = str(value)
 
@@ -1111,7 +1165,18 @@ class TablePlot(BasePlot):
                                             )
                                             value = temp_data[var_name][0]
                                         round_digits = col_template.get("round", 2)
-                                        value = f"{value:.{round_digits}f}"
+                                        use_scientific = col_template.get(
+                                            "use_scientific", False
+                                        )
+                                        scientific_threshold = col_template.get(
+                                            "scientific_threshold", 1e6
+                                        )
+                                        value = format_number(
+                                            value,
+                                            round_digits,
+                                            use_scientific,
+                                            scientific_threshold,
+                                        )
                                         prefix = col_template.get("prefix", "")
                                         suffix = col_template.get("suffix", "")
                                         value = f"{prefix}{value}{suffix}"
@@ -1159,7 +1224,16 @@ class TablePlot(BasePlot):
                                     )
                                     value = temp_data[var_name][0]
                                 round_digits = col.get("round", 2)
-                                value = f"{value:.{round_digits}f}"
+                                use_scientific = col.get("use_scientific", False)
+                                scientific_threshold = col.get(
+                                    "scientific_threshold", 1e6
+                                )
+                                value = format_number(
+                                    value,
+                                    round_digits,
+                                    use_scientific,
+                                    scientific_threshold,
+                                )
                                 prefix = col.get("prefix", "")
                                 suffix = col.get("suffix", "")
                                 value = f"{prefix}{value}{suffix}"
@@ -1439,7 +1513,16 @@ class PlotlyTablePlot(BasePlot):
                                     value = temp_data[var_name][0]
 
                                 round_digits = col.get("round", 2)
-                                value = f"{value:.{round_digits}f}"
+                                use_scientific = col.get("use_scientific", False)
+                                scientific_threshold = col.get(
+                                    "scientific_threshold", 1e6
+                                )
+                                value = format_number(
+                                    value,
+                                    round_digits,
+                                    use_scientific,
+                                    scientific_threshold,
+                                )
 
                                 prefix = col.get("prefix", "")
                                 suffix = col.get("suffix", "")
@@ -1495,7 +1578,18 @@ class PlotlyTablePlot(BasePlot):
                                             value = temp_data[var_name][0]
 
                                         round_digits = col_template.get("round", 2)
-                                        value = f"{value:.{round_digits}f}"
+                                        use_scientific = col_template.get(
+                                            "use_scientific", False
+                                        )
+                                        scientific_threshold = col_template.get(
+                                            "scientific_threshold", 1e6
+                                        )
+                                        value = format_number(
+                                            value,
+                                            round_digits,
+                                            use_scientific,
+                                            scientific_threshold,
+                                        )
 
                                         prefix = col_template.get("prefix", "")
                                         suffix = col_template.get("suffix", "")
@@ -1815,7 +1909,18 @@ class PlotlyMultiPlot:
                                             value = temp_data[var_name][0]
 
                                         round_digits = col_template.get("round", 2)
-                                        value = f"{value:.{round_digits}f}"
+                                        use_scientific = col_template.get(
+                                            "use_scientific", False
+                                        )
+                                        scientific_threshold = col_template.get(
+                                            "scientific_threshold", 1e6
+                                        )
+                                        value = format_number(
+                                            value,
+                                            round_digits,
+                                            use_scientific,
+                                            scientific_threshold,
+                                        )
 
                                         prefix = col_template.get("prefix", "")
                                         suffix = col_template.get("suffix", "")
@@ -1878,7 +1983,16 @@ class PlotlyMultiPlot:
 
                                 # Apply rounding if specified
                                 round_digits = col.get("round", 2)
-                                value = f"{value:.{round_digits}f}"
+                                use_scientific = col.get("use_scientific", False)
+                                scientific_threshold = col.get(
+                                    "scientific_threshold", 1e6
+                                )
+                                value = format_number(
+                                    value,
+                                    round_digits,
+                                    use_scientific,
+                                    scientific_threshold,
+                                )
 
                                 # Add prefix/suffix if specified
                                 prefix = col.get("prefix", "")
@@ -1923,7 +2037,11 @@ class PlotlyMultiPlot:
         # Format number if possible, else use string representation
         try:
             numeric_value = float(value)
-            formatted_value = f"{numeric_value:.{round_digits}f}"
+            use_scientific = textfield_config.get("use_scientific", False)
+            scientific_threshold = textfield_config.get("scientific_threshold", 1e6)
+            formatted_value = format_number(
+                numeric_value, round_digits, use_scientific, scientific_threshold
+            )
         except (TypeError, ValueError):
             formatted_value = str(value)
 
