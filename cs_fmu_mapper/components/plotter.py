@@ -52,10 +52,66 @@ def clean_axis_label(label):
     label = label.replace("$\\omega$", "ω")
     label = label.replace("\\omega", "ω")
 
+    # Handle LaTeX superscripts
+    label = label.replace("^2", "²")
+    label = label.replace("^3", "³")
+    label = label.replace("^{2}", "²")
+    label = label.replace("^{3}", "³")
+
     # Remove any remaining LaTeX dollar signs
     label = label.replace("$", "")
 
+    # Also clean HTML entities
+    label = clean_html_entities(label)
+
     return label
+
+
+def clean_html_entities(text):
+    """Clean HTML entities to Unicode symbols for matplotlib compatibility"""
+    if not text:
+        return text
+
+    # Common HTML entities
+    html_entities = {
+        "&deg;": "°",
+        "&mu;": "μ",
+        "&alpha;": "α",
+        "&beta;": "β",
+        "&gamma;": "γ",
+        "&delta;": "δ",
+        "&theta;": "θ",
+        "&phi;": "φ",
+        "&pi;": "π",
+        "&sigma;": "σ",
+        "&omega;": "ω",
+        "&sup2;": "²",
+        "&sup3;": "³",
+        "&times;": "×",
+        "&plusmn;": "±",
+        "&lt;": "<",
+        "&gt;": ">",
+        "&amp;": "&",
+        "&quot;": '"',
+        "&apos;": "'",
+        # Add numeric HTML entities for superscripts
+        "&#xb2;": "²",  # superscript 2
+        "&#xb3;": "³",  # superscript 3
+        "&#xb0;": "°",  # degree symbol
+        "&#xb1;": "±",  # plus-minus
+        "&#xd7;": "×",  # multiplication
+        "&#x3c;": "<",  # less than
+        "&#x3e;": ">",  # greater than
+        "&#x26;": "&",  # ampersand
+        "&#x22;": '"',  # quote
+        "&#x27;": "'",  # apostrophe
+    }
+
+    # Replace HTML entities with Unicode symbols
+    for entity, unicode_char in html_entities.items():
+        text = text.replace(entity, unicode_char)
+
+    return text
 
 
 def format_number(
@@ -529,9 +585,17 @@ class Plotter(SimulationComponent):
 
                                 row_data.append(processed_value)
                             else:
-                                row_data.append(col_template.get("value", ""))
+                                # Handle special cases like {"/"} for empty cells
+                                if "/" in col_template:
+                                    row_data.append("")
+                                else:
+                                    row_data.append(col_template.get("value", ""))
                         else:
-                            row_data.append(str(col_template))
+                            # Handle string values like "/" for empty cells
+                            if str(col_template) == "/":
+                                row_data.append("")
+                            else:
+                                row_data.append(str(col_template))
                     rows.append(row_data)
                 data.extend(rows)
 
@@ -745,14 +809,15 @@ class TimeSeriesPlot(BasePlot):
                 self._data, self._config["vars"], self._config["yUnit"]
             )
         for i, var in enumerate(self._config["vars"]):
+            # Clean legend label for matplotlib compatibility
+            legend_label = None
+            if "legend" in self._config.keys():
+                legend_label = clean_html_entities(self._config["legend"][i])
+
             ax.plot(
                 self._data["time"],
                 self._data[var],
-                label=(
-                    self._config["legend"][i]
-                    if "legend" in self._config.keys()
-                    else None
-                ),
+                label=legend_label,
                 linewidth=(
                     0.5
                     if "linewidth" not in self._config.keys()
@@ -805,6 +870,8 @@ class TimeSeriesPlot(BasePlot):
             formatted_value = str(value)
 
         text = f"{prefix}{formatted_value}{suffix}"
+        # Clean HTML entities for matplotlib compatibility
+        text = clean_html_entities(text)
         x = textfield_config.get("x", 0.05)
         y = textfield_config.get("y", 0.95)
         fontsize = textfield_config.get("fontsize", 10)
@@ -838,15 +905,16 @@ class ScatterPlot(BasePlot):
             )
 
         for i, var in enumerate(self._config["vars"]):
+            # Clean legend label for matplotlib compatibility
+            legend_label = None
+            if "legend" in self._config.keys():
+                legend_label = clean_html_entities(self._config["legend"][i])
+
             ax.plot(
                 x_values,
                 self._data[var],
                 "x",
-                label=(
-                    self._config["legend"][i]
-                    if "legend" in self._config.keys()
-                    else None
-                ),
+                label=legend_label,
                 **self._config.get("plot_kwargs", {}),
             )
 
@@ -1012,6 +1080,8 @@ class PlotlyInteractivePlot(BasePlot):
             formatted_value = str(value)
 
         text = f"{prefix}{formatted_value}{suffix}"
+        # Clean HTML entities for matplotlib compatibility
+        text = clean_html_entities(text)
         x = textfield_config.get("x", 0.05)
         y = textfield_config.get("y", 0.95)
         fontsize = textfield_config.get("fontsize", 10)
@@ -1096,12 +1166,32 @@ class TablePlot(BasePlot):
                 else:
                     table_data["data"][i] = row[:expected_cols]
 
+        # Clean HTML entities for matplotlib compatibility
+        # Clean headers
+        table_data["headers"] = [
+            clean_html_entities(header) for header in table_data["headers"]
+        ]
+        # Clean data cells
+        for i, row in enumerate(table_data["data"]):
+            table_data["data"][i] = [clean_html_entities(cell) for cell in row]
+
+        # Calculate figure size based on table dimensions
+        n_rows = len(table_data["data"]) + 1  # +1 for header
+        n_cols = len(table_data["headers"])
+
+        # Dynamic sizing: width based on columns, height based on rows
+        # For tables with many columns, we need more width
+        fig_width = max(
+            12, n_cols * 3.0
+        )  # Minimum 12, 3.0 per column for better spacing
+        fig_height = max(8, n_rows * 0.8)  # Minimum 8, 0.8 per row
+
         # Create figure and axis
-        fig, ax = plt.subplots(figsize=(12, 8))
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
         ax.axis("tight")
         ax.axis("off")
 
-        # Create table
+        # Create table with proper positioning
         table = ax.table(
             cellText=table_data["data"],
             colLabels=table_data["headers"],
@@ -1113,8 +1203,12 @@ class TablePlot(BasePlot):
         # Style the table
         self._style_table(table)
 
-        # Set title
-        ax.set_title(self._title, pad=20, fontsize=16, fontweight="bold")
+        # Set title with proper spacing (clean HTML entities for matplotlib)
+        clean_title = clean_html_entities(self._title)
+        ax.set_title(clean_title, pad=30, fontsize=16, fontweight="bold")
+
+        # Adjust layout to prevent title overlap
+        plt.tight_layout(pad=2.0)
 
         self.finalize(fig, ax, filetypes=["pdf", "png"])
 
@@ -1140,11 +1234,9 @@ class TablePlot(BasePlot):
                         if isinstance(col_template, dict):
                             if "template" in col_template:
                                 template = col_template["template"]
-                                processed_value = (
-                                    template.replace("{{item}}", str(item))
-                                    .replace("{item}", str(item))
-                                    .replace("{value}", str(item))
-                                )
+                                processed_value = template.replace(
+                                    "{{item}}", str(item)
+                                ).replace("{item}", str(item))
 
                                 if "var_template" in col_template:
                                     var_template = col_template["var_template"]
@@ -1194,9 +1286,17 @@ class TablePlot(BasePlot):
 
                                 row_data.append(processed_value)
                             else:
-                                row_data.append(col_template.get("value", ""))
+                                # Handle special cases like {"/"} for empty cells
+                                if "/" in col_template:
+                                    row_data.append("")
+                                else:
+                                    row_data.append(col_template.get("value", ""))
                         else:
-                            row_data.append(str(col_template))
+                            # Handle string values like "/" for empty cells
+                            if str(col_template) == "/":
+                                row_data.append("")
+                            else:
+                                row_data.append(str(col_template))
                     rows.append(row_data)
                 data.extend(rows)
 
@@ -1261,11 +1361,7 @@ class TablePlot(BasePlot):
             table_props = self._config.get("table_properties", {})
 
             # Access cells as dict of (row, col) -> Cell
-            cells = (
-                table.get_celld()
-                if hasattr(table, "get_celld")
-                else getattr(table, "_cells", None)
-            )
+            cells = table.get_celld()
             if not cells:
                 return
 
@@ -1322,11 +1418,45 @@ class TablePlot(BasePlot):
                         cell = cells.get((r, i))
                         if cell is not None:
                             cell.set_width(width)
+            else:
+                # Auto-adjust column widths based on content
+                # This helps with tables that have many columns
+                for c in col_indices:
+                    max_width = 0
+                    for r in row_indices:
+                        cell = cells.get((r, c))
+                        if cell is not None:
+                            try:
+                                text = cell.get_text().get_text()
+                                # Estimate width based on text length
+                                estimated_width = len(text) * 0.15  # Rough estimate
+                                max_width = max(max_width, estimated_width)
+                            except:
+                                pass
+                    # Set a reasonable minimum and maximum width
+                    final_width = max(0.5, min(2.0, max_width + 0.2))
+                    for r in row_indices:
+                        cell = cells.get((r, c))
+                        if cell is not None:
+                            cell.set_width(final_width)
 
             # General table properties
             table.auto_set_font_size(False)
             table.set_fontsize(font_size)
-            table.scale(1, table_props.get("row_height", 2))
+            # Scale table to fit the figure better
+            row_height = table_props.get("row_height", 2)
+            table.scale(1, row_height)
+
+            # Ensure the table fits within the figure bounds
+            try:
+                table_width = sum(
+                    cell.get_width() for cell in cells.values() if cell is not None
+                )
+                if table_width > 0.9:  # If table is too wide, scale it down
+                    scale_factor = 0.9 / table_width
+                    table.scale(scale_factor, 1)
+            except:
+                pass  # If scaling fails, continue with default
 
             # Grid line color/width and vertical centering
             grid_color = table_props.get("grid_color")
@@ -1610,9 +1740,17 @@ class PlotlyTablePlot(BasePlot):
 
                                 row_data.append(processed_value)
                             else:
-                                row_data.append(col_template.get("value", ""))
+                                # Handle special cases like {"/"} for empty cells
+                                if "/" in col_template:
+                                    row_data.append("")
+                                else:
+                                    row_data.append(col_template.get("value", ""))
                         else:
-                            row_data.append(str(col_template))
+                            # Handle string values like "/" for empty cells
+                            if str(col_template) == "/":
+                                row_data.append("")
+                            else:
+                                row_data.append(str(col_template))
                     rows.append(row_data)
                 data = rows
 
@@ -1940,9 +2078,17 @@ class PlotlyMultiPlot:
 
                                 row_data.append(processed_value)
                             else:
-                                row_data.append(col_template.get("value", ""))
+                                # Handle special cases like {"/"} for empty cells
+                                if "/" in col_template:
+                                    row_data.append("")
+                                else:
+                                    row_data.append(col_template.get("value", ""))
                         else:
-                            row_data.append(str(col_template))
+                            # Handle string values like "/" for empty cells
+                            if str(col_template) == "/":
+                                row_data.append("")
+                            else:
+                                row_data.append(str(col_template))
                     rows.append(row_data)
                 data.extend(rows)
 
@@ -2046,6 +2192,8 @@ class PlotlyMultiPlot:
             formatted_value = str(value)
 
         text = f"{prefix}{formatted_value}{suffix}"
+        # Clean HTML entities for matplotlib compatibility
+        text = clean_html_entities(text)
         x = textfield_config.get("x", 0.05)
         y = textfield_config.get("y", 0.95)
         fontsize = textfield_config.get("fontsize", 10)
