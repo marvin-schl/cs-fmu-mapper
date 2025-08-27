@@ -315,37 +315,77 @@ class FMPySimClient(FMUSimClient):
 
         match self._vrs[key]["type"]:
             case "Real":
-                return_value = self._model.getReal(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )[index]
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getReal(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getReal(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case "Float32":
-                return_value = self._model.getFloat32(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getFloat32(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getFloat32(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case "Float64":
-                return_value = self._model.getFloat64(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getFloat64(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getFloat64(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case "Integer":
-                return_value = self._model.getInteger(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getInteger(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getInteger(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case "Int32":
-                return_value = self._model.getInt32(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getInt32(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getInt32(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case "Int64":
-                return_value = self._model.getInt64(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getInt64(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getInt64(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case "Boolean":
-                return_value = self._model.getBoolean(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getBoolean(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getBoolean(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case "String":
-                return_value = self._model.getString(
-                    vr=[self._vrs[key]["valueReference"]], nValues=n_values
-                )
+                if isinstance(self._model, FMU2Slave):
+                    return_value = self._model.getString(
+                        vr=[self._vrs[key]["valueReference"]]
+                    )
+                else:
+                    return_value = self._model.getString(
+                        vr=[self._vrs[key]["valueReference"]], nValues=n_values
+                    )
             case _:
                 raise ValueError(f"Unknown type: {self._vrs[key]['type']}")
 
